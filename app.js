@@ -1,5 +1,6 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
-const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
+
+// CHỈ NẠP DUY NHẤT CẤU HÌNH TỪ GITHUB REST API V3 GIST (KHÔNG DÙNG SERVER_CONFIG TÊN REPO)
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
 let allVoiceMetadata = [];
@@ -9,10 +10,10 @@ let modalGpuUrls = [
     "https://hai319959--vieneu-tts-serverless-vieneumodel-generate.modal.run",
     "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
 ];
+
 let usersDatabase = {
     "USERS": {
         "admin-0405": { "password": "Hth1624!", "quota": 99999999, "used": 0, "role": "Admin VIP" },
-        "admin": { "password": "123", "quota": 99999999, "used": 0, "role": "Admin VIP" },
         "tester": { "password": "123", "quota": 100000, "used": 0, "role": "Dùng thử" }
     }
 };
@@ -31,10 +32,37 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("user-badge").classList.add("hidden");
 
     loadSavedGeminiKey();
-    loadServerConfig();
+    loadServerConfigFromGist();
     loadGitHubVoices();
-    addAppLog("Khởi tạo hệ thống HTH Supper Voice Vip thành công.");
+    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Chỉ dùng GitHub Gist).");
 });
+
+// NẠP DUY NHẤT CẤU HÌNH TÀI KHOẢN VÀ MẬT KHẨU TỪ GITHUB GIST REST API V3 (REALTIME TỨC THÌ 0s DELAY)
+async function loadServerConfigFromGist() {
+    try {
+        const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
+        if (resp.ok) {
+            const gistObject = await resp.json();
+            const files = gistObject.files;
+            const firstFileName = Object.keys(files)[0];
+
+            if (firstFileName && files[firstFileName].content) {
+                const gistData = JSON.parse(files[firstFileName].content);
+                if (Array.isArray(gistData)) {
+                    modalGpuUrls = gistData;
+                } else if (typeof gistData === 'object') {
+                    if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
+                    if (gistData.users) {
+                        usersDatabase.USERS = gistData.users;
+                        console.log("Đã đồng bộ thành công danh sách tài khoản 100% từ GitHub Gist:", usersDatabase.USERS);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Lỗi nạp cấu hình từ Gist API v3:", e);
+    }
+}
 
 // GHI LOG VÀO KHUNG APP LOGS CHUẨN TOOL EXE
 function addAppLog(msg) {
@@ -54,7 +82,7 @@ function updateCharCount() {
     }
 }
 
-// KHẢ NĂNG IMPORT FILE TXT KỊCH BẢN CHUẨN TOOL EXE
+// IMPORT FILE TXT KỊCH BẢN
 function triggerImportTxt() {
     document.getElementById("file-import-txt").click();
 }
@@ -217,7 +245,7 @@ function splitChunks() {
     currentChunksList = rawChunks.map((textStr, idx) => ({
         id: idx + 1,
         text: textStr,
-        status: "pending", // pending, running, done, error
+        status: "pending",
         audioUrl: null,
         take: "Take 1"
     }));
@@ -231,7 +259,7 @@ function renderChunksTable() {
     tbody.innerHTML = "";
 
     if (currentChunksList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94A3B8; padding: 20px;">Chưa có đoạn văn bản nào. Vui lòng dán kịch bản và bấm "Chia Đoạn Văn Bản".</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94A3B8; padding: 20px;">Chưa có đoạn văn bản nào. Vui lòng nhập kịch bản và bấm "Chia Đoạn Văn Bản".</td></tr>';
         return;
     }
 
@@ -269,7 +297,6 @@ function selectChunkRow(idx) {
     renderChunksTable();
 }
 
-// NÚT TẠO TẤT CẢ CÁC ĐOẠN IN TABLE
 async function generateAllChunks() {
     if (!currentUser) { openAuthModal(); return; }
     if (currentChunksList.length === 0) { alert("Vui lòng chia đoạn trước!"); return; }
@@ -281,13 +308,11 @@ async function generateAllChunks() {
     addAppLog("Hoàn tất tiến trình Tạo tất cả các đoạn!");
 }
 
-// NÚT TẠO ĐOẠN ĐANG CHỌN
 async function generateSelectedChunk() {
     if (selectedChunkIndex === -1) { alert("Vui lòng click chọn 1 đoạn trong bảng trước!"); return; }
     await processSingleChunk(selectedChunkIndex);
 }
 
-// NÚT TẠO LẠI CÁC ĐOẠN LỖI
 async function retryErrorChunks() {
     const errorIndices = currentChunksList.map((c, idx) => c.status === "error" ? idx : -1).filter(i => i !== -1);
     if (errorIndices.length === 0) { alert("Không có đoạn nào bị lỗi!"); return; }
@@ -298,7 +323,6 @@ async function retryErrorChunks() {
     }
 }
 
-// HÀM XỬ LÝ TẠO 1 ĐOẠN
 async function processSingleChunk(idx) {
     const item = currentChunksList[idx];
     if (currentUser.used + item.text.length > currentUser.quota) {
@@ -314,7 +338,6 @@ async function processSingleChunk(idx) {
 
     await new Promise(r => setTimeout(r, 1200));
 
-    // Thành công 100%
     item.status = "done";
     item.audioUrl = "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg";
     currentUser.used += item.text.length;
@@ -323,7 +346,6 @@ async function processSingleChunk(idx) {
     addAppLog(`Đoạn ${item.id} tạo thành công 100%.`);
 }
 
-// PHÁT ĐOẠN ĐANG CHỌN HOẶC DỪNG PHÁT
 function playSelectedChunk() {
     if (selectedChunkIndex === -1) { alert("Vui lòng chọn 1 đoạn trong bảng!"); return; }
     const item = currentChunksList[selectedChunkIndex];
@@ -353,7 +375,6 @@ function stopGenerating() {
     addAppLog("Đã gửi lệnh Dừng Tạo.");
 }
 
-// KHỐI GỘP CÁC ĐOẠN & XUẤT BẢN FILE TỆP HOÀN CHỈNH
 function mergeAllAudioChunks() {
     const doneChunks = currentChunksList.filter(c => c.status === "done" && c.audioUrl);
     if (doneChunks.length === 0) {
@@ -380,34 +401,11 @@ function mergeAllAudioChunks() {
     addAppLog("GỘP CÁC ĐOẠN VÀ XUẤT FILE HOÀN CHỈNH THÀNH CÔNG 100%!");
 }
 
-// Nạp cấu hình từ GitHub REST API v3
-async function loadServerConfig() {
-    try {
-        const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
-        if (resp.ok) {
-            const gistObject = await resp.json();
-            const files = gistObject.files;
-            const firstFileName = Object.keys(files)[0];
-            if (firstFileName && files[firstFileName].content) {
-                const gistData = JSON.parse(files[firstFileName].content);
-                if (Array.isArray(gistData)) modalGpuUrls = gistData;
-                else if (typeof gistData === 'object') {
-                    if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
-                    if (gistData.users) usersDatabase.USERS = { ...usersDatabase.USERS, ...gistData.users };
-                }
-            }
-        }
-    } catch (e) {
-        console.error("Lỗi nạp GitHub API v3:", e);
-    }
-}
-
 function getRandomGpuUrl() {
     if (!modalGpuUrls || modalGpuUrls.length === 0) return "https://modal.com";
     return modalGpuUrls[Math.floor(Math.random() * modalGpuUrls.length)];
 }
 
-// Nạp danh sách giọng đọc từ GitHub Repo
 async function loadGitHubVoices() {
     try {
         const resp = await fetch(`https://api.github.com/repos/${GITHUB_VOICE_REPO}/contents/`);
@@ -520,6 +518,7 @@ function openStudio() {
     }
 }
 
+// XÁC THỰC ĐĂNG NHẬP CHỈ LẤY DỮ LIỆU TỪ GITHUB GIST API V3 (0s DELAY)
 async function submitAuth() {
     const username = document.getElementById("auth-username").value.trim();
     const pass = document.getElementById("auth-password").value.trim();
@@ -529,14 +528,14 @@ async function submitAuth() {
         return;
     }
 
-    await loadServerConfig();
+    await loadServerConfigFromGist();
 
     const userAcc = usersDatabase.USERS[username];
     if (userAcc && userAcc.password === pass) {
         currentUser = { username, ...userAcc };
         closeAuthModal();
         showStudioView();
-        addAppLog(`Người dùng "${username}" đăng nhập thành công.`);
+        addAppLog(`Tài khoản "${username}" đăng nhập thành công từ Gist.`);
     } else {
         alert("Tên tài khoản hoặc mật khẩu không chính xác!");
     }

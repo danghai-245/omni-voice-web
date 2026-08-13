@@ -3,17 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTH Supper Voice Vip - Cỗ Máy Siêu Tạo Voice AI</title>
+    <title>HTH Supper Voice Vip - Cỗ Máy Siêu Tạo Voice AI Cảm Xúc</title>
     <meta name="description" content="HTH Supper Voice Vip - Cỗ máy siêu tạo voice AI cảm xúc đa ngôn ngữ chất lượng cao hàng đầu 2026.">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/logo.png">
 </head>
 <body>
-    <!-- HEADER PRO BRANDING HTH SUPPER VOICE VIP -->
+    <!-- HEADER PRO BRANDING HTH SUPPER VOICE VIP VỚI LOGO SVG NỘI TUYẾN CHỐNG LỖI 100% -->
     <header class="navbar">
         <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/logo.png" alt="HTH Supper Voice Vip" class="brand-logo" id="main-logo">
+            <svg class="brand-svg-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" rx="28" fill="url(#logo-grad)"/>
+                <path d="M30 32V68M45 22V78M60 38V62M75 28V72" stroke="#000" stroke-width="9" stroke-linecap="round"/>
+                <path d="M30 32V68M45 22V78M60 38V62M75 28V72" stroke="#FFF" stroke-width="6" stroke-linecap="round"/>
+                <defs>
+                    <linearGradient id="logo-grad" x1="0" y1="0" x2="100" y2="100">
+                        <stop stop-color="#00E5FF"/>
+                        <stop offset="0.5" stop-color="#10B981"/>
+                        <stop offset="1" stop-color="#8B5CF6"/>
+                    </linearGradient>
+                </defs>
+            </svg>
             <span class="brand-title">HTH Supper Voice Vip</span>
         </div>
         <nav class="nav-menu" id="nav-links">
@@ -80,57 +90,59 @@
                 </div>
 
                 <!-- KHUNG NHẬP KỊCH BẢN + NÚT IMPORT FILE TXT -->
-                <div class="section-header-inline">
-                    <label for="text-input"><strong><i class="fa-solid fa-pen-to-square"></i> Văn Bản Kịch Bản Cần Tạo Voice (Nhập hoặc import file):</strong></label>
-                    <button class="btn-import-file" onclick="triggerImportTxt()"><i class="fa-solid fa-folder-open"></i> Import file TXT</button>
-                    <input type="file" id="file-import-txt" accept=".txt" class="hidden" onchange="handleFileTxtImport(event)">
-                </div>
+                <div class="card-box">
+                    <div class="section-header-inline">
+                        <label for="text-input"><strong><i class="fa-solid fa-pen-to-square"></i> Văn Bản Kịch Bản Cần Tạo Voice (Nhập hoặc import file):</strong></label>
+                        <button class="btn-import-file" onclick="triggerImportTxt()"><i class="fa-solid fa-folder-open"></i> Import file TXT</button>
+                        <input type="file" id="file-import-txt" accept=".txt" class="hidden" onchange="handleFileTxtImport(event)">
+                    </div>
 
-                <div class="emotion-tags">
-                    <span class="tag-title">Chèn biểu cảm nhanh:</span>
-                    <button type="button" class="btn-tag" onclick="insertEmotionTag('[laughter]')">Cười 😄</button>
-                    <button type="button" class="btn-tag" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
-                    <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
-                    <button type="button" class="btn-tag" onclick="insertEmotionTag('[ô!]')">Ồ! 😲</button>
-                    <button type="button" class="btn-tag" onclick="insertEmotionTag('[hỏi?]')">Hỏi ?</button>
-                    <button type="button" class="btn-tag" onclick="insertEmotionTag('[bất bình]')">Bất bình 😡</button>
-                    <button type="button" class="btn-tag tag-highlight" onclick="insertEmotionTag('[nhấn giọng]')">Nhấn giọng 💥</button>
-                </div>
+                    <div class="emotion-tags">
+                        <span class="tag-title">Chèn biểu cảm nhanh:</span>
+                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[laughter]')">Cười 😄</button>
+                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
+                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
+                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[ô!]')">Ồ! 😲</button>
+                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[hỏi?]')">Hỏi ?</button>
+                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[bất bình]')">Bất bình 😡</button>
+                        <button type="button" class="btn-tag tag-highlight" onclick="insertEmotionTag('[nhấn giọng]')">Nhấn giọng 💥</button>
+                    </div>
 
-                <textarea id="text-input" placeholder="Nhập hoặc dán đoạn văn bản kịch bản cần tạo giọng đọc tại đây..." oninput="updateCharCount()"></textarea>
-                
-                <div id="text-char-count" class="text-meta-bar"><i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>0</strong> ký tự</div>
+                    <textarea id="text-input" placeholder="Nhập hoặc dán đoạn văn bản kịch bản cần tạo giọng đọc tại đây..." oninput="updateCharCount()"></textarea>
+                    
+                    <div id="text-char-count" class="text-meta-bar"><i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>0</strong> ký tự</div>
 
-                <!-- CẤU HÌNH CHIA ĐOẠN -->
-                <div class="form-group-inline">
-                    <label for="select-chunk-mode"><strong><i class="fa-solid fa-scissors"></i> Cách chia đoạn (Chuẩn Tool EXE):</strong></label>
-                    <select id="select-chunk-mode">
-                        <option value="300">Theo câu (Lùi tìm dấu câu - Tối đa 300 ký tự)</option>
-                        <option value="200">Theo câu (Tối đa 200 ký tự)</option>
-                        <option value="500">Theo câu (Tối đa 500 ký tự)</option>
-                        <option value="800">Theo câu (Tối đa 800 ký tự)</option>
-                        <option value="line">Theo dòng mới (\n)</option>
-                        <option value="sentence">Theo câu (. ! ?)</option>
-                    </select>
-                </div>
+                    <!-- CẤU HÌNH CHIA ĐOẠN -->
+                    <div class="form-group-inline">
+                        <label for="select-chunk-mode"><strong><i class="fa-solid fa-scissors"></i> Cách chia đoạn (Chuẩn Tool EXE):</strong></label>
+                        <select id="select-chunk-mode">
+                            <option value="300">Theo câu (Lùi tìm dấu câu - Tối đa 300 ký tự)</option>
+                            <option value="200">Theo câu (Tối đa 200 ký tự)</option>
+                            <option value="500">Theo câu (Tối đa 500 ký tự)</option>
+                            <option value="800">Theo câu (Tối đa 800 ký tự)</option>
+                            <option value="line">Theo dòng mới (\n)</option>
+                            <option value="sentence">Theo câu (. ! ?)</option>
+                        </select>
+                    </div>
 
-                <div class="grid-2-col">
-                    <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (Gemini)</button>
-                    <button class="btn-primary" onclick="splitChunks()"><i class="fa-solid fa-bolt"></i> Chia Đoạn Văn Bản</button>
+                    <div class="grid-2-col">
+                        <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (Gemini)</button>
+                        <button class="btn-primary" onclick="splitChunks()"><i class="fa-solid fa-bolt"></i> Chia Đoạn Văn Bản</button>
+                    </div>
                 </div>
 
                 <!-- BẢNG DANH SÁCH ĐOẠN VĂN BẢN CHUẨN TOOL EXE -->
-                <div style="margin-top: 15px;">
+                <div class="card-box">
                     <label><strong><i class="fa-solid fa-list-check"></i> Danh sách các đoạn văn bản sau chia nhỏ:</strong></label>
                     <div class="table-container">
                         <table class="table-chunks">
                             <thead>
                                 <tr>
-                                    <th style="width: 8%;">STT</th>
-                                    <th style="width: 42%;">Nội dung đoạn</th>
+                                    <th style="width: 10%;">STT</th>
+                                    <th style="width: 45%;">Nội dung đoạn</th>
                                     <th style="width: 15%;">Trạng thái</th>
-                                    <th style="width: 15%;">Bản chọn</th>
-                                    <th style="width: 20%;">Nghe thử / Tải</th>
+                                    <th style="width: 12%;">Bản chọn</th>
+                                    <th style="width: 18%;">Nghe / Tải</th>
                                 </tr>
                             </thead>
                             <tbody id="table-chunks-body">
@@ -140,16 +152,16 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
 
-                <!-- HỆ THỐNG NÚT ĐIỀU KHIỂN HÀNG LOẠT TOOL EXE -->
-                <div class="action-buttons-group">
-                    <button class="btn-batch btn-batch-green" onclick="generateAllChunks()"><i class="fa-solid fa-play"></i> Tạo tất cả</button>
-                    <button class="btn-batch btn-batch-red" onclick="stopGenerating()"><i class="fa-solid fa-stop"></i> Dừng tạo</button>
-                    <button class="btn-batch btn-batch-mint" onclick="generateSelectedChunk()"><i class="fa-solid fa-crosshairs"></i> Tạo đoạn chọn</button>
-                    <button class="btn-batch btn-batch-blue" onclick="retryErrorChunks()"><i class="fa-solid fa-rotate-right"></i> Tạo lại lỗi</button>
-                    <button class="btn-batch btn-batch-cyan" onclick="playSelectedChunk()"><i class="fa-solid fa-volume-high"></i> Phát chọn</button>
-                    <button class="btn-batch btn-batch-red" onclick="stopPlaying()"><i class="fa-solid fa-circle-pause"></i> Dừng</button>
+                    <!-- HỆ THỐNG NÚT ĐIỀU KHIỂN HÀNG LOẠT TOOL EXE -->
+                    <div class="action-buttons-group">
+                        <button class="btn-batch btn-batch-green" onclick="generateAllChunks()"><i class="fa-solid fa-play"></i> Tạo tất cả</button>
+                        <button class="btn-batch btn-batch-red" onclick="stopGenerating()"><i class="fa-solid fa-stop"></i> Dừng tạo</button>
+                        <button class="btn-batch btn-batch-mint" onclick="generateSelectedChunk()"><i class="fa-solid fa-crosshairs"></i> Tạo đoạn chọn</button>
+                        <button class="btn-batch btn-batch-blue" onclick="retryErrorChunks()"><i class="fa-solid fa-rotate-right"></i> Tạo lại lỗi</button>
+                        <button class="btn-batch btn-batch-cyan" onclick="playSelectedChunk()"><i class="fa-solid fa-volume-high"></i> Phát chọn</button>
+                        <button class="btn-batch btn-batch-red" onclick="stopPlaying()"><i class="fa-solid fa-circle-pause"></i> Dừng</button>
+                    </div>
                 </div>
 
                 <!-- KHUNG NHẬT KÝ HOẠT ĐỘNG (APP LOGS) -->
@@ -163,7 +175,7 @@
 
             <!-- CỘT BÊN PHẢI: CHỌN GIỌNG, TINH CHỈNH PHÁT ÂM VÀ GỘP FILE HOÀN CHỈNH -->
             <div class="panel-right">
-                <div class="voice-picker-card">
+                <div class="card-box voice-picker-card">
                     <h3><i class="fa-solid fa-user-gear"></i> Giọng đọc tham chiếu (Voice Clone)</h3>
                     
                     <div class="filter-row">
@@ -177,14 +189,14 @@
                         <button class="btn-icon" onclick="searchVoiceId()"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
 
-                    <label for="select-voice"><strong>Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</strong></label>
+                    <label for="select-voice" style="margin-top: 10px; display: block;"><strong>Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</strong></label>
                     <select id="select-voice">
                         <option>Đang nạp danh sách giọng đọc...</option>
                     </select>
                 </div>
 
                 <!-- BẢNG TINH CHỈNH PHÁT ÂM & ĐẶC TÍNH GIỌNG (CHỦẨN TOOL EXE) -->
-                <div class="audio-params-card">
+                <div class="card-box audio-params-card">
                     <h4><i class="fa-solid fa-sliders"></i> Tinh chỉnh phát âm & Đặc tính giọng</h4>
                     
                     <div class="form-group-inline">
@@ -238,8 +250,8 @@
                         </div>
                     </div>
 
-                    <div class="form-group-checkbox">
-                        <label class="checkbox-label">
+                    <div style="margin-top: 10px;">
+                        <label>
                             <input type="checkbox" id="check-denoise" checked>
                             <span><i class="fa-solid fa-wand-magic-sparkles"></i> Bật chế độ Khử Nhiễu Nền AI (Denoise)</span>
                         </label>
@@ -310,21 +322,21 @@
                 <!-- KHỐI GỘP & XUẤT BẢN TỆP HOÀN CHỈNH (CHUẨN TOOL EXE) -->
                 <div class="merge-section-card">
                     <h4><i class="fa-solid fa-file-audio"></i> Gộp & Xuất bản tệp hoàn chỉnh</h4>
-                    <div class="form-group-checkbox">
-                        <label class="checkbox-label">
+                    <div>
+                        <label>
                             <input type="checkbox" id="check-auto-clean" checked>
                             <span>Tự động dọn dẹp (xóa) toàn bộ file tạm sau khi gộp</span>
                         </label>
                     </div>
-                    <div class="form-group-inline">
+                    <div style="margin-top: 10px;">
                         <label for="input-silence-pause">Khoảng lặng giữa các đoạn (giây):</label>
                         <input type="number" id="input-silence-pause" value="0.2" step="0.1" min="0.0" max="5.0">
                     </div>
-                    <button class="btn-merge-all" onclick="mergeAllAudioChunks()"><i class="fa-solid fa-layer-group"></i> GỘP CÁC ĐOẠN & DỌN DẸP FILE TẠM</button>
+                    <button class="btn-merge-all" onclick="mergeAllAudioChunks()"><i class="fa-solid fa-layer-group"></i> GỘP CÁC ĐOẠN & DỌN DEEP FILE TẠM</button>
                 </div>
 
                 <div id="audio-result-card" class="result-card hidden">
-                    <p class="success-msg"><i class="fa-solid fa-circle-check"></i> Siêu tạo âm thanh thành công!</p>
+                    <p style="color:#10B981; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Siêu tạo âm thanh thành công!</p>
                     <audio id="audio-player" controls></audio>
                     <a id="download-link" href="#" download class="btn-secondary-block"><i class="fa-solid fa-download"></i> Tải File Âm Thanh (.wav)</a>
                 </div>
@@ -337,7 +349,7 @@
         <div class="modal-card">
             <button class="modal-close" onclick="closeAuthModal()">&times;</button>
             <h3><i class="fa-solid fa-lock"></i> Đăng Nhập HTH Supper Voice</h3>
-            <p class="modal-desc">Nhập Tên tài khoản và Mật khẩu để trải nghiệm đầy đủ tính năng tạo voice.</p>
+            <p style="color: #94A3B8; font-size: 0.88rem; margin: 8px 0 16px 0;">Nhập Tên tài khoản và Mật khẩu để trải nghiệm đầy đủ tính năng tạo voice.</p>
             
             <div class="form-group">
                 <label for="auth-username">Tên tài khoản:</label>
@@ -359,19 +371,21 @@
             <button class="modal-close" onclick="closeAdminModal()">&times;</button>
             <h3><i class="fa-solid fa-crown"></i> Bảng Quản Lý Người Dùng & Hạn Mức (Admin VIP)</h3>
             
-            <div class="admin-add-user-box">
-                <h4><i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới:</h4>
-                <div class="grid-4-col">
+            <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:16px; margin: 16px 0;">
+                <h4 style="color:#10B981; font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới:</h4>
+                <div class="grid-2-col">
                     <input type="text" id="new-user-name" placeholder="Tên tài khoản...">
                     <input type="text" id="new-user-pass" placeholder="Mật khẩu...">
+                </div>
+                <div class="grid-2-col" style="margin-top: 8px;">
                     <input type="number" id="new-user-quota" placeholder="Hạn mức KÝ TỰ (mặc định 100,000)..." value="100000">
                     <input type="text" id="new-user-role" placeholder="Vai trò (Khách VIP)..." value="Khách VIP">
                 </div>
-                <button class="btn-accent" onclick="addNewUser()" style="margin-top: 8px;"><i class="fa-solid fa-plus"></i> Cấp Tài Khoản</button>
+                <button class="btn-accent" onclick="addNewUser()" style="margin-top: 12px; width: auto;"><i class="fa-solid fa-plus"></i> Cấp Tài Khoản</button>
             </div>
 
-            <div class="admin-table-container">
-                <table class="user-table">
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table class="table-chunks">
                     <thead>
                         <tr>
                             <th>Tài khoản</th>
