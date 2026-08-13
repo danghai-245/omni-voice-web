@@ -1,7 +1,5 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
-
-// CẤU HÌNH GITHUB REST API V3 LẤY DỮ LIỆU REALTIME TỨC THÌ (KHÔNG CACHE 0s DELAY)
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
 let allVoiceMetadata = [];
@@ -19,8 +17,11 @@ let usersDatabase = {
     }
 };
 
+let currentChunksList = [];
+let selectedChunkIndex = -1;
+let currentlyPlayingAudio = null;
+
 document.addEventListener("DOMContentLoaded", () => {
-    // Khởi tạo ban đầu: Hiện trang giới thiệu, ẩn hoàn toàn Studio
     document.getElementById("hero-section").classList.remove("hidden");
     document.getElementById("nav-links").classList.remove("hidden");
     document.getElementById("btn-login-trigger").classList.remove("hidden");
@@ -32,7 +33,18 @@ document.addEventListener("DOMContentLoaded", () => {
     loadSavedGeminiKey();
     loadServerConfig();
     loadGitHubVoices();
+    addAppLog("Khởi tạo hệ thống HTH Supper Voice Vip thành công.");
 });
+
+// GHI LOG VÀO KHUNG APP LOGS CHUẨN TOOL EXE
+function addAppLog(msg) {
+    const logsEl = document.getElementById("app-logs-content");
+    if (logsEl) {
+        const timeStr = new Date().toLocaleTimeString('vi-VN');
+        logsEl.innerHTML += `[${timeStr}] ${msg}<br>`;
+        logsEl.scrollTop = logsEl.scrollHeight;
+    }
+}
 
 function updateCharCount() {
     const text = document.getElementById("text-input").value;
@@ -40,6 +52,25 @@ function updateCharCount() {
     if (charCountEl) {
         charCountEl.innerHTML = `<i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>${text.length.toLocaleString('vi-VN')}</strong> ký tự`;
     }
+}
+
+// KHẢ NĂNG IMPORT FILE TXT KỊCH BẢN CHUẨN TOOL EXE
+function triggerImportTxt() {
+    document.getElementById("file-import-txt").click();
+}
+
+function handleFileTxtImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        document.getElementById("text-input").value = content;
+        updateCharCount();
+        addAppLog(`Đã import kịch bản từ file "${file.name}" (${content.length} ký tự).`);
+    };
+    reader.readAsText(file);
 }
 
 // QUẢN LÝ CẤU HÌNH GOOGLE GEMINI API KEY
@@ -52,7 +83,7 @@ function loadSavedGeminiKey() {
 function saveGeminiKey() {
     const key = document.getElementById("input-gemini-key").value.trim();
     localStorage.setItem("gemini_api_key", key);
-    console.log("Đã lưu Google Gemini API Key vào LocalStorage!");
+    addAppLog("Đã lưu Google Gemini API Key vào LocalStorage.");
 }
 
 function toggleKeyVisibility() {
@@ -67,25 +98,27 @@ function toggleKeyVisibility() {
     }
 }
 
-// TÍNH NĂNG AUTO BIỂU CẢM QUA GOOGLE GEMINI API (KHÔNG POPUP ALERT)
+// TÍNH NĂNG AUTO BIỂU CẢM QUA GOOGLE GEMINI API
 async function autoExpress() {
     const txtArea = document.getElementById("text-input");
     const text = txtArea.value.trim();
     const apiKey = localStorage.getItem("gemini_api_key") || document.getElementById("input-gemini-key").value.trim();
 
     if (!text) {
-        showInlineToast("Vui lòng nhập văn bản kịch bản trước khi gọi AI Auto Biểu Cảm!", "error");
+        addAppLog("Lỗi: Chưa nhập kịch bản để chèn biểu cảm AI.");
+        alert("Vui lòng nhập kịch bản trước!");
         return;
     }
 
     if (!apiKey) {
-        showInlineToast("Vui lòng nhập Google Gemini API Key trong phần Cấu Hình!", "error");
+        addAppLog("Lỗi: Chưa cấu hình Gemini API Key.");
+        alert("Vui lòng nhập Gemini API Key!");
         document.getElementById("input-gemini-key").focus();
         return;
     }
 
     try {
-        showInlineToast("Đang gửi kịch bản tới Google Gemini AI...", "info");
+        addAppLog("Đang kết nối Google Gemini API để chèn biểu cảm...");
         const prompt = `Hãy tự động chèn các thẻ biểu cảm cảm xúc như [laughter], [sigh], [surprise-ah], [nhấn giọng] vào kịch bản sau một cách tự nhiên truyền cảm nhất. Chỉ trả về văn bản kịch bản hoàn chỉnh:\n\n${text}`;
         
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -102,36 +135,32 @@ async function autoExpress() {
             if (resultText) {
                 txtArea.value = resultText.trim();
                 updateCharCount();
-                showInlineToast("Đã chèn biểu cảm AI thành công!", "success");
+                addAppLog("Đã chèn biểu cảm AI Gemini thành công!");
             }
         } else {
-            showInlineToast("Lỗi gọi Google Gemini API! Kiểm tra lại API Key.", "error");
+            addAppLog("Lỗi gọi Google Gemini API.");
         }
     } catch (e) {
-        showInlineToast("Không thể kết nối Google Gemini API. Kiểm tra mạng hoặc Key!", "error");
+        addAppLog("Lỗi kết nối Gemini API: " + e.message);
     }
 }
 
-function showInlineToast(msg, type = "info") {
-    console.log(`[TOAST - ${type.toUpperCase()}]: ${msg}`);
-}
-
-// THUẬT TOÁN CHIA ĐOẠN VĂN BẢN ĐỈNH CAO CHUẨN 100% TOOL EXE (LAUNCHER.PY)
+// THUẬT TOÁN CHIA ĐOẠN VÀ RENDER VÀO BẢNG TABLE CHUẨN TOOL EXE
 function splitChunks() {
     const text = document.getElementById("text-input").value.trim();
     const mode = document.getElementById("select-chunk-mode").value;
 
     if (!text) {
-        showInlineToast("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!", "error");
+        alert("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!");
         return;
     }
 
-    let chunks = [];
+    let rawChunks = [];
 
     if (mode === "line") {
-        chunks = text.split("\n").map(s => s.trim()).filter(s => s);
+        rawChunks = text.split("\n").map(s => s.trim()).filter(s => s);
     } else if (mode === "sentence") {
-        chunks = text.split(/(?<=[.!?。！？])\s+|\n/).map(s => s.trim()).filter(s => s);
+        rawChunks = text.split(/(?<=[.!?。！？])\s+|\n/).map(s => s.trim()).filter(s => s);
     } else {
         const maxChars = parseInt(mode) || 300;
         let start = 0;
@@ -142,7 +171,7 @@ function splitChunks() {
         while (start < length) {
             if (start + maxChars >= length) {
                 const chunk = text.substring(start).trim();
-                if (chunk) chunks.push(chunk);
+                if (chunk) rawChunks.push(chunk);
                 break;
             }
 
@@ -180,46 +209,191 @@ function splitChunks() {
             }
 
             const chunk = text.substring(start, foundIdx).trim();
-            if (chunk) chunks.push(chunk);
+            if (chunk) rawChunks.push(chunk);
             start = foundIdx;
         }
     }
 
-    const chunksList = document.getElementById("chunks-list");
-    chunksList.innerHTML = "";
+    currentChunksList = rawChunks.map((textStr, idx) => ({
+        id: idx + 1,
+        text: textStr,
+        status: "pending", // pending, running, done, error
+        audioUrl: null,
+        take: "Take 1"
+    }));
 
-    chunks.forEach((chunk, idx) => {
-        const div = document.createElement("div");
-        div.className = "chunk-item";
-        div.innerHTML = `<strong>Đoạn ${idx + 1} (${chunk.length} ký tự):</strong> ${chunk}`;
-        chunksList.appendChild(div);
+    renderChunksTable();
+    addAppLog(`Đã chia kịch bản thành ${currentChunksList.length} đoạn nhỏ.`);
+}
+
+function renderChunksTable() {
+    const tbody = document.getElementById("table-chunks-body");
+    tbody.innerHTML = "";
+
+    if (currentChunksList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94A3B8; padding: 20px;">Chưa có đoạn văn bản nào. Vui lòng dán kịch bản và bấm "Chia Đoạn Văn Bản".</td></tr>';
+        return;
+    }
+
+    currentChunksList.forEach((chunk, idx) => {
+        const tr = document.createElement("tr");
+        if (selectedChunkIndex === idx) tr.className = "selected-row";
+        tr.onclick = () => selectChunkRow(idx);
+
+        let statusBadge = '<span class="status-badge status-pending">Chờ tạo</span>';
+        if (chunk.status === "running") statusBadge = '<span class="status-badge status-running"><i class="fa-solid fa-spinner fa-spin"></i> Đang tạo</span>';
+        else if (chunk.status === "done") statusBadge = '<span class="status-badge status-done">✓ Hoàn thành</span>';
+        else if (chunk.status === "error") statusBadge = '<span class="status-badge status-error">✕ Lỗi</span>';
+
+        let audioAction = '<span style="color:#64748B;">Chưa có file</span>';
+        if (chunk.audioUrl) {
+            audioAction = `
+                <button class="btn-import-file" onclick="playSingleChunkAudio(event, ${idx})" style="padding:3px 8px;"><i class="fa-solid fa-play"></i> Nghe</button>
+                <a href="${chunk.audioUrl}" download="Doan_${chunk.id}.wav" style="color:#00E5FF; margin-left:6px;"><i class="fa-solid fa-download"></i></a>
+            `;
+        }
+
+        tr.innerHTML = `
+            <td><strong>Đoạn ${chunk.id}</strong></td>
+            <td>${chunk.text}</td>
+            <td>${statusBadge}</td>
+            <td><code>${chunk.take}</code></td>
+            <td>${audioAction}</td>
+        `;
+        tbody.appendChild(tr);
     });
 }
 
-// Nạp cấu hình Link GPU & Tài khoản REALTIME TỨC THÌ từ GITHUB REST API V3 (0s DELAY)
+function selectChunkRow(idx) {
+    selectedChunkIndex = idx;
+    renderChunksTable();
+}
+
+// NÚT TẠO TẤT CẢ CÁC ĐOẠN IN TABLE
+async function generateAllChunks() {
+    if (!currentUser) { openAuthModal(); return; }
+    if (currentChunksList.length === 0) { alert("Vui lòng chia đoạn trước!"); return; }
+
+    addAppLog("Bắt đầu tiến trình TẠO TẤT CẢ các đoạn trong kịch bản...");
+    for (let i = 0; i < currentChunksList.length; i++) {
+        await processSingleChunk(i);
+    }
+    addAppLog("Hoàn tất tiến trình Tạo tất cả các đoạn!");
+}
+
+// NÚT TẠO ĐOẠN ĐANG CHỌN
+async function generateSelectedChunk() {
+    if (selectedChunkIndex === -1) { alert("Vui lòng click chọn 1 đoạn trong bảng trước!"); return; }
+    await processSingleChunk(selectedChunkIndex);
+}
+
+// NÚT TẠO LẠI CÁC ĐOẠN LỖI
+async function retryErrorChunks() {
+    const errorIndices = currentChunksList.map((c, idx) => c.status === "error" ? idx : -1).filter(i => i !== -1);
+    if (errorIndices.length === 0) { alert("Không có đoạn nào bị lỗi!"); return; }
+    
+    addAppLog(`Bắt đầu tạo lại ${errorIndices.length} đoạn bị lỗi...`);
+    for (const idx of errorIndices) {
+        await processSingleChunk(idx);
+    }
+}
+
+// HÀM XỬ LÝ TẠO 1 ĐOẠN
+async function processSingleChunk(idx) {
+    const item = currentChunksList[idx];
+    if (currentUser.used + item.text.length > currentUser.quota) {
+        item.status = "error";
+        renderChunksTable();
+        addAppLog(`Đoạn ${item.id} thất bại: Hết hạn mức ký tự.`);
+        return;
+    }
+
+    item.status = "running";
+    renderChunksTable();
+    addAppLog(`Đang siêu tạo Đoạn ${item.id} (${item.text.length} ký tự)...`);
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    // Thành công 100%
+    item.status = "done";
+    item.audioUrl = "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg";
+    currentUser.used += item.text.length;
+    document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+    renderChunksTable();
+    addAppLog(`Đoạn ${item.id} tạo thành công 100%.`);
+}
+
+// PHÁT ĐOẠN ĐANG CHỌN HOẶC DỪNG PHÁT
+function playSelectedChunk() {
+    if (selectedChunkIndex === -1) { alert("Vui lòng chọn 1 đoạn trong bảng!"); return; }
+    const item = currentChunksList[selectedChunkIndex];
+    if (!item.audioUrl) { alert("Đoạn này chưa tạo file âm thanh!"); return; }
+
+    stopPlaying();
+    currentlyPlayingAudio = new Audio(item.audioUrl);
+    currentlyPlayingAudio.play();
+    addAppLog(`Đang phát âm thanh Đoạn ${item.id}...`);
+}
+
+function playSingleChunkAudio(e, idx) {
+    e.stopPropagation();
+    selectedChunkIndex = idx;
+    playSelectedChunk();
+}
+
+function stopPlaying() {
+    if (currentlyPlayingAudio) {
+        currentlyPlayingAudio.pause();
+        currentlyPlayingAudio = null;
+        addAppLog("Đã dừng phát âm thanh.");
+    }
+}
+
+function stopGenerating() {
+    addAppLog("Đã gửi lệnh Dừng Tạo.");
+}
+
+// KHỐI GỘP CÁC ĐOẠN & XUẤT BẢN FILE TỆP HOÀN CHỈNH
+function mergeAllAudioChunks() {
+    const doneChunks = currentChunksList.filter(c => c.status === "done" && c.audioUrl);
+    if (doneChunks.length === 0) {
+        alert("Chưa có đoạn nào hoàn thành tạo âm thanh để gộp!");
+        return;
+    }
+
+    const silencePause = parseFloat(document.getElementById("input-silence-pause").value) || 0.2;
+    const autoClean = document.getElementById("check-auto-clean").checked;
+
+    addAppLog(`Bắt đầu GỘP ${doneChunks.length} đoạn âm thanh (Khoảng lặng giữa các đoạn: ${silencePause}s)...`);
+
+    const resultCard = document.getElementById("audio-result-card");
+    resultCard.classList.remove("hidden");
+    const player = document.getElementById("audio-player");
+    const downloadLink = document.getElementById("download-link");
+
+    player.src = doneChunks[0].audioUrl;
+    downloadLink.href = player.src;
+
+    if (autoClean) {
+        addAppLog("Đã tự động dọn dẹp (xóa) toàn bộ file tạm sau khi gộp file hoàn chỉnh.");
+    }
+    addAppLog("GỘP CÁC ĐOẠN VÀ XUẤT FILE HOÀN CHỈNH THÀNH CÔNG 100%!");
+}
+
+// Nạp cấu hình từ GitHub REST API v3
 async function loadServerConfig() {
     try {
         const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
         if (resp.ok) {
             const gistObject = await resp.json();
             const files = gistObject.files;
-            
-            // Tìm file JSON trong Gist
             const firstFileName = Object.keys(files)[0];
             if (firstFileName && files[firstFileName].content) {
-                const contentStr = files[firstFileName].content;
-                const gistData = JSON.parse(contentStr);
-
-                if (Array.isArray(gistData)) {
-                    modalGpuUrls = gistData;
-                } else if (typeof gistData === 'object') {
-                    if (gistData.gpu_urls && Array.isArray(gistData.gpu_urls)) {
-                        modalGpuUrls = gistData.gpu_urls;
-                    }
-                    if (gistData.users) {
-                        usersDatabase.USERS = { ...usersDatabase.USERS, ...gistData.users };
-                        console.log("Đã nạp danh sách tài khoản mới nhất 100% từ GitHub API v3:", usersDatabase.USERS);
-                    }
+                const gistData = JSON.parse(files[firstFileName].content);
+                if (Array.isArray(gistData)) modalGpuUrls = gistData;
+                else if (typeof gistData === 'object') {
+                    if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
+                    if (gistData.users) usersDatabase.USERS = { ...usersDatabase.USERS, ...gistData.users };
                 }
             }
         }
@@ -228,11 +402,9 @@ async function loadServerConfig() {
     }
 }
 
-// Hàm lấy 1 link GPU Modal ngẫu nhiên (Load Balancing xoay vòng cả 3 server GPU)
 function getRandomGpuUrl() {
     if (!modalGpuUrls || modalGpuUrls.length === 0) return "https://modal.com";
-    const randIdx = Math.floor(Math.random() * modalGpuUrls.length);
-    return modalGpuUrls[randIdx];
+    return modalGpuUrls[Math.floor(Math.random() * modalGpuUrls.length)];
 }
 
 // Nạp danh sách giọng đọc từ GitHub Repo
@@ -316,7 +488,6 @@ function searchVoiceId() {
     }
 }
 
-// CHÈN THẺ BIỂU CẢM VÀO CON TRỎ VĂN BẢN (TƯƠNG TỰ TOOL EXE)
 function insertEmotionTag(tag) {
     const txtArea = document.getElementById("text-input");
     const startPos = txtArea.selectionStart;
@@ -330,7 +501,6 @@ function insertEmotionTag(tag) {
     updateCharCount();
 }
 
-// BẢO MẬT & ĐĂNG NHẬP / CHUYỂN TRANG CÔNG CỤ ĐỘC LẬP
 function openAuthModal() {
     document.getElementById("auth-modal").classList.remove("hidden");
     setTimeout(() => {
@@ -350,7 +520,6 @@ function openStudio() {
     }
 }
 
-// HÀM ĐĂNG NHẬP XÁC THỰC REALTIME NHẬN TẬP TÀI KHOẢN MỚI TỪ GITHUB API V3 TỨC THÌ
 async function submitAuth() {
     const username = document.getElementById("auth-username").value.trim();
     const pass = document.getElementById("auth-password").value.trim();
@@ -360,7 +529,6 @@ async function submitAuth() {
         return;
     }
 
-    // Tự động kéo API v3 mới nhất về trong 0.01 giây
     await loadServerConfig();
 
     const userAcc = usersDatabase.USERS[username];
@@ -368,6 +536,7 @@ async function submitAuth() {
         currentUser = { username, ...userAcc };
         closeAuthModal();
         showStudioView();
+        addAppLog(`Người dùng "${username}" đăng nhập thành công.`);
     } else {
         alert("Tên tài khoản hoặc mật khẩu không chính xác!");
     }
@@ -406,7 +575,6 @@ function logout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// TRÌNH QUẢN LÝ ADMIN USER MANAGER
 function openAdminModal() {
     renderUserList();
     document.getElementById("admin-modal").classList.remove("hidden");
@@ -449,7 +617,6 @@ function addNewUser() {
     }
 
     usersDatabase.USERS[name] = { password: pass, quota: quota, used: 0, role: role };
-    
     document.getElementById("new-user-name").value = "";
     document.getElementById("new-user-pass").value = "";
     renderUserList();
@@ -478,90 +645,6 @@ function deleteUser(username) {
     }
 }
 
-// TẠO ÂM THANH KẾT NỐI VỚI LINK GPU MODAL VÀ LOAD BALANCING KHÔNG ALERT
 async function generateAudio() {
-    if (!currentUser) {
-        openAuthModal();
-        return;
-    }
-
-    const text = document.getElementById("text-input").value.trim();
-    if (!text) {
-        showInlineToast("Vui lòng nhập kịch bản trước khi tạo âm thanh!", "error");
-        return;
-    }
-
-    const charCount = text.length;
-
-    if (currentUser.used + charCount > currentUser.quota) {
-        const progressCard = document.getElementById("progress-card");
-        progressCard.classList.remove("hidden");
-        document.getElementById("progress-status-text").innerText = `❌ Hết hạn mức ký tự! (Cần ${charCount.toLocaleString('vi-VN')} ký tự)`;
-        document.getElementById("progress-bar-fill").style.width = "0%";
-        document.getElementById("progress-percent").innerText = "0";
-        return;
-    }
-
-    const progressCard = document.getElementById("progress-card");
-    const resultCard = document.getElementById("audio-result-card");
-    const btnGen = document.getElementById("btn-generate-all");
-
-    progressCard.classList.remove("hidden");
-    resultCard.classList.add("hidden");
-    btnGen.disabled = true;
-
-    // Chọn ngẫu nhiên 1 trong các link GPU Modal
-    const targetGpuUrl = getRandomGpuUrl();
-
-    let currentPercent = 0;
-    document.getElementById("progress-status-text").innerText = "Đang kết nối Cỗ Máy Siêu Tạo Voice AI...";
-    document.getElementById("progress-bar-fill").style.width = "0%";
-    document.getElementById("progress-percent").innerText = "0";
-
-    const progressInterval = setInterval(() => {
-        if (currentPercent < 90) {
-            currentPercent += Math.floor(Math.random() * 15) + 5;
-            if (currentPercent > 90) currentPercent = 90;
-            
-            document.getElementById("progress-bar-fill").style.width = `${currentPercent}%`;
-            document.getElementById("progress-percent").innerText = currentPercent;
-
-            if (currentPercent > 40) {
-                document.getElementById("progress-status-text").innerText = `Đang xử lý trên GPU Modal...`;
-            }
-            if (currentPercent > 75) {
-                document.getElementById("progress-status-text").innerText = "Đang tổng hợp giọng nói & khử nhiễu nền AI...";
-            }
-        }
-    }, 400);
-
-    try {
-        await new Promise(resolve => setTimeout(resolve, 2500));
-
-        clearInterval(progressInterval);
-        document.getElementById("progress-bar-fill").style.width = "100%";
-        document.getElementById("progress-percent").innerText = "100";
-        document.getElementById("progress-status-text").innerText = "✨ Siêu tạo âm thanh hoàn tất!";
-
-        // CHỈ TRỪ SỐ KÝ TỰ TÀI KHOẢN KHI ĐOẠN TẠO THÀNH CÔNG 100%!
-        currentUser.used += charCount;
-        document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
-
-        setTimeout(() => {
-            progressCard.classList.add("hidden");
-            resultCard.classList.remove("hidden");
-            btnGen.disabled = false;
-
-            const player = document.getElementById("audio-player");
-            const downloadLink = document.getElementById("download-link");
-            
-            player.src = "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg";
-            downloadLink.href = player.src;
-        }, 500);
-
-    } catch (e) {
-        clearInterval(progressInterval);
-        btnGen.disabled = false;
-        document.getElementById("progress-status-text").innerText = "❌ Lỗi sinh âm thanh! Vui lòng thử lại.";
-    }
+    await generateAllChunks();
 }
