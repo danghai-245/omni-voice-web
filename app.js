@@ -252,6 +252,13 @@ function showStudioView() {
     document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
     document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
 
+    // HIỂN THỊ NÚT QUẢN LÝ ADMIN NẾU LÀ ADMIN VIP
+    if (currentUser.role.includes("Admin") || currentUser.username === "admin") {
+        document.getElementById("btn-admin-manage").classList.remove("hidden");
+    } else {
+        document.getElementById("btn-admin-manage").classList.add("hidden");
+    }
+
     document.getElementById("studio-section").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -267,6 +274,80 @@ function logout() {
     document.getElementById("btn-studio-trigger").classList.remove("hidden");
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// TRÌNH QUẢN LÝ ADMIN USER MANAGER
+function openAdminModal() {
+    renderUserList();
+    document.getElementById("admin-modal").classList.remove("hidden");
+}
+
+function closeAdminModal() {
+    document.getElementById("admin-modal").classList.add("hidden");
+}
+
+function renderUserList() {
+    const tbody = document.getElementById("user-table-body");
+    tbody.innerHTML = "";
+
+    Object.keys(usersDatabase.USERS).forEach(username => {
+        const u = usersDatabase.USERS[username];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><strong>${username}</strong></td>
+            <td><code>${u.password}</code></td>
+            <td>${u.used}/${u.quota} lượt</td>
+            <td><span class="badge-role">${u.role}</span></td>
+            <td>
+                <button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Hạn Mức</button>
+                ${username !== 'admin' ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function addNewUser() {
+    const name = document.getElementById("new-user-name").value.trim();
+    const pass = document.getElementById("new-user-pass").value.trim();
+    const quota = parseInt(document.getElementById("new-user-quota").value.trim()) || 50;
+    const role = document.getElementById("new-user-role").value.trim() || "Khách VIP";
+
+    if (!name || !pass) {
+        alert("Vui lòng nhập Tên tài khoản và Mật khẩu!");
+        return;
+    }
+
+    usersDatabase.USERS[name] = { password: pass, quota: quota, used: 0, role: role };
+    alert(`Đã thêm thành công tài khoản: ${name} (Mật khẩu: ${pass}, Hạn mức: ${quota} lượt)`);
+    
+    document.getElementById("new-user-name").value = "";
+    document.getElementById("new-user-pass").value = "";
+    renderUserList();
+}
+
+function editUserQuota(username) {
+    const currentAcc = usersDatabase.USERS[username];
+    const newQuotaStr = prompt(`Nhập Hạn Mức (Quota) MỚI cho tài khoản ${username}:`, currentAcc.quota);
+    if (newQuotaStr !== null) {
+        const newQuota = parseInt(newQuotaStr);
+        if (!isNaN(newQuota)) {
+            currentAcc.quota = newQuota;
+            alert(`Đã cập nhật hạn mức mới cho ${username} thành ${newQuota} lượt!`);
+            renderUserList();
+            if (currentUser && currentUser.username === username) {
+                currentUser.quota = newQuota;
+                document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
+            }
+        }
+    }
+}
+
+function deleteUser(username) {
+    if (confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
+        delete usersDatabase.USERS[username];
+        renderUserList();
+    }
 }
 
 function generateAudio() {
@@ -286,23 +367,46 @@ function generateAudio() {
     document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
 }
 
+// XỬ LÝ CHIA ĐOẠN THEO CẤU HÌNH KÝ TỰ CHỌN
 function splitChunks() {
     const text = document.getElementById("text-input").value.trim();
+    const mode = document.getElementById("select-chunk-mode").value;
+
     if (!text) {
         alert("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!");
         return;
     }
 
-    const sentences = text.split(/(?<=[.!?\n])\s+/);
+    let chunks = [];
+
+    if (mode === "auto") {
+        chunks = text.split(/(?<=[.!?\n])\s+/).filter(s => s.trim());
+    } else {
+        const maxLen = parseInt(mode);
+        let remaining = text;
+
+        while (remaining.length > 0) {
+            if (remaining.length <= maxLen) {
+                chunks.push(remaining.trim());
+                break;
+            }
+
+            // Tìm vị trí cắt thích hợp theo khoảng trắng hoặc dấu câu gần nhất
+            let cutPos = remaining.lastIndexOf(" ", maxLen);
+            if (cutPos <= 0) cutPos = maxLen;
+
+            chunks.push(remaining.substring(0, cutPos).trim());
+            remaining = remaining.substring(cutPos).trim();
+        }
+    }
+
     const chunksList = document.getElementById("chunks-list");
     chunksList.innerHTML = "";
 
-    sentences.forEach((s, idx) => {
-        if (s.trim()) {
-            const div = document.createElement("div");
-            div.className = "chunk-item";
-            div.innerHTML = `<strong>Đoạn ${idx + 1}:</strong> ${s.trim()}`;
-            chunksList.appendChild(div);
-        }
+    chunks.forEach((chunk, idx) => {
+        const div = document.createElement("div");
+        div.className = "chunk-item";
+        div.innerHTML = `<strong>Đoạn ${idx + 1} (${chunk.length} ký tự):</strong> ${chunk}`;
+        chunksList.appendChild(div);
     });
 }

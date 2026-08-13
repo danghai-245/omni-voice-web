@@ -252,17 +252,113 @@ select, input {
     padding-left: 36px;
 }
 
-.user-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    color: #10B981;
+.top-api-group {
+    background: rgba(0, 229, 255, 0.05);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.top-api-group label {
+    font-size: 0.85rem;
+    color: #00E5FF;
     font-weight: 700;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.split-controls-group {
+    margin: 10px 0;
+}
+
+.split-select-wrap label {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.btn-admin-sm {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #0F172A;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.admin-modal-content {
+    max-width: 750px !important;
+    width: 95% !important;
+    text-align: left !important;
+}
+
+.add-user-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+.add-user-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.add-user-inputs input {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
+.user-list-table-container {
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.user-table th, .user-table td {
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+}
+
+.user-table th {
+    background: #0F172A;
+    color: #00E5FF;
+}
+
+.btn-action-del {
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.btn-action-edit {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    margin-right: 4px;
 }
 
 .quota-badge {

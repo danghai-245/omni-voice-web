@@ -26,6 +26,7 @@
             <div id="user-badge" class="user-badge hidden">
                 <span id="user-name-display"><i class="fa-solid fa-user-check"></i> Tester</span>
                 <span id="user-quota-display" class="quota-badge">0/20</span>
+                <button id="btn-admin-manage" class="btn-admin-sm hidden" onclick="openAdminModal()"><i class="fa-solid fa-crown"></i> Quản Lý User</button>
                 <button class="btn-logout-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
             </div>
             <button id="btn-login-trigger" class="btn-secondary" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
@@ -62,7 +63,7 @@
         </div>
     </section>
 
-    <!-- STUDIO DASHBOARD (RESPONSIVE FOR ALL DEVICES) -->
+    <!-- STUDIO DASHBOARD -->
     <section id="studio-section" class="studio-section hidden">
         <div class="studio-header-bar">
             <div class="header-left">
@@ -72,8 +73,17 @@
         </div>
 
         <div class="studio-grid">
-            <!-- CỘT TRÁI: NHẬP VĂN BẢN & CÁC NÚT BIỂU CẢM -->
+            <!-- CỘT TRÁI: API GOOGLE, KỊCH BẢN, BIỂU CẢM & LỰA CHỌN CHIA ĐOẠN -->
             <div class="studio-card left-card">
+                <!-- CẤU HÌNH API GOOGLE GEMINI ĐƯỢC CHUYỂN LÊN ĐẦU CỘT TRÁI -->
+                <div class="form-group api-key-group top-api-group">
+                    <label for="input-gemini-key"><i class="fa-brands fa-google"></i> Google Gemini API Key (Auto Biểu Cảm):</label>
+                    <div class="input-with-btn">
+                        <input type="password" id="input-gemini-key" placeholder="Nhập Google Gemini API Key (AI-zaSy...)" onchange="saveGeminiKey()">
+                        <button class="btn-icon" onclick="toggleKeyVisibility()"><i id="key-eye-icon" class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+
                 <h3><i class="fa-solid fa-pen-to-square"></i> Văn Bản Kịch Bản Cần Tạo Voice</h3>
                 
                 <!-- THANH NÚT CHÈN BIỂU CẢM GIỐNG TOOL EXE -->
@@ -90,6 +100,20 @@
 
                 <textarea id="text-input" placeholder="Nhập kịch bản văn bản của bạn tại đây hoặc dán nội dung vào đây..."></textarea>
                 
+                <!-- CÁC LỰA CHỌN CHIA ĐOẠN VĂN BẢN -->
+                <div class="split-controls-group">
+                    <div class="split-select-wrap">
+                        <label for="select-chunk-mode"><i class="fa-solid fa-scissors"></i> Chế độ chia đoạn:</label>
+                        <select id="select-chunk-mode">
+                            <option value="auto">Theo dấu câu (.!?)</option>
+                            <option value="200">Tối đa 200 ký tự/đoạn</option>
+                            <option value="300" selected>Tối đa 300 ký tự/đoạn</option>
+                            <option value="500">Tối đa 500 ký tự/đoạn</option>
+                            <option value="800">Tối đa 800 ký tự/đoạn</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="action-bar">
                     <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (AI Gemini)</button>
                     <button class="btn-primary" onclick="splitChunks()"><i class="fa-solid fa-scissors"></i> Chia Đoạn Văn Bản</button>
@@ -103,9 +127,9 @@
                 </div>
             </div>
 
-            <!-- CỘT PHẢI: CHỌN GIỌNG & CẤU HÌNH API GOOGLE GEMINI -->
+            <!-- CỘT PHẢI: CHỌN GIỌNG & CẤU HÌNH ENGINE -->
             <div class="studio-card right-card">
-                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc & API Google</h3>
+                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc Mẫu & Engine</h3>
                 
                 <!-- BỘ LỌC MULTI-FILTER -->
                 <div class="filter-group">
@@ -132,15 +156,6 @@
                     <select id="select-voice" onchange="onVoiceSelected()">
                         <option>-- Đang nạp danh sách giọng VIP --</option>
                     </select>
-                </div>
-
-                <!-- CẤU HÌNH API GOOGLE GEMINI -->
-                <div class="form-group api-key-group">
-                    <label for="input-gemini-key"><i class="fa-brands fa-google"></i> Google Gemini API Key (Auto Biểu Cảm):</label>
-                    <div class="input-with-btn">
-                        <input type="password" id="input-gemini-key" placeholder="Nhập Google Gemini API Key (AI-zaSy...)" onchange="saveGeminiKey()">
-                        <button class="btn-icon" onclick="toggleKeyVisibility()"><i id="key-eye-icon" class="fa-solid fa-eye"></i></button>
-                    </div>
                 </div>
 
                 <!-- AI ENGINE CHOICE -->
@@ -174,6 +189,45 @@
                 <input type="password" id="auth-password" placeholder="Nhập Mật khẩu (Ví dụ: 123)..." onkeyup="if(event.key==='Enter') submitAuth()" />
             </div>
             <button class="btn-primary btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> ĐĂNG NHẬP NGAY</button>
+        </div>
+    </div>
+
+    <!-- ADMIN USER MANAGER MODAL (QUẢN LÝ TÀI KHOẢN VÀ HẠN MỨC) -->
+    <div id="admin-modal" class="modal-overlay hidden">
+        <div class="modal-content admin-modal-content">
+            <button class="modal-close" onclick="closeAdminModal()">&times;</button>
+            <h2><i class="fa-solid fa-crown"></i> QUẢN LÝ TÀI KHOẢN & HẠN MỨC (ADMIN)</h2>
+            <p>Thêm, sửa Mật khẩu, nâng Hạn mức (Quota) hoặc Xóa tài khoản người dùng trực tiếp.</p>
+            
+            <!-- FORM THÊM USER MỚI -->
+            <div class="add-user-card">
+                <h4><i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới:</h4>
+                <div class="add-user-inputs">
+                    <input type="text" id="new-user-name" placeholder="Tên đăng nhập (username)..." />
+                    <input type="text" id="new-user-pass" placeholder="Mật khẩu..." />
+                    <input type="number" id="new-user-quota" placeholder="Hạn mức số lượt..." value="50" />
+                    <input type="text" id="new-user-role" placeholder="Vai trò (Khách VIP)..." value="Khách VIP" />
+                    <button class="btn-primary" onclick="addNewUser()"><i class="fa-solid fa-plus"></i> Thêm User</button>
+                </div>
+            </div>
+
+            <!-- DANH SÁCH USER HIỆN TẠI -->
+            <div class="user-list-table-container">
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th>Mật khẩu</th>
+                            <th>Đã dùng / Hạn mức</th>
+                            <th>Vai trò</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <!-- Render Javascript -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
