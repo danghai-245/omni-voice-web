@@ -214,8 +214,19 @@
 
                 <button id="btn-generate-all" class="btn-accent btn-block" onclick="generateAudio()"><i class="fa-solid fa-cloud-arrow-up"></i> SIÊU TẠO ÂM THANH HOÀN CHỈNH</button>
 
+                <!-- THANH TIẾN TRÌNH PROGRESS BAR (% TẠO VOICE) -->
+                <div id="progress-card" class="progress-card hidden">
+                    <div class="progress-status-title">
+                        <i class="fa-solid fa-spinner fa-spin"></i> <span id="progress-status-text">Đang kết nối Cỗ Máy Siêu Tạo Voice...</span>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                    </div>
+                    <div class="progress-text"><span id="progress-percent">0</span>% Hoàn thành</div>
+                </div>
+
                 <div id="audio-result-card" class="result-card hidden">
-                    <p class="success-msg"><i class="fa-solid fa-circle-check"></i> Siêu tạo âm thanh thành công!</p>
+                    <p class="success-msg"><i class="fa-solid fa-circle-check"></i> Siêu tạo âmthanhh thành công!</p>
                     <audio id="audio-player" controls></audio>
                     <a id="download-link" href="#" download class="btn-secondary-block"><i class="fa-solid fa-download"></i> Tải File Âm Thanh (.wav)</a>
                 </div>

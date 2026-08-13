@@ -59,25 +59,25 @@ function toggleKeyVisibility() {
     }
 }
 
-// TÍNH NĂNG AUTO BIỂU CẢM QUA GOOGLE GEMINI API
+// TÍNH NĂNG AUTO BIỂU CẢM QUA GOOGLE GEMINI API (KHÔNG POPUP ALERT)
 async function autoExpress() {
     const txtArea = document.getElementById("text-input");
     const text = txtArea.value.trim();
     const apiKey = localStorage.getItem("gemini_api_key") || document.getElementById("input-gemini-key").value.trim();
 
     if (!text) {
-        alert("Vui lòng nhập văn bản kịch bản trước khi gọi AI Auto Biểu Cảm!");
+        showInlineToast("Vui lòng nhập văn bản kịch bản trước khi gọi AI Auto Biểu Cảm!", "error");
         return;
     }
 
     if (!apiKey) {
-        alert("Vui lòng nhập Google Gemini API Key trong phần Cấu Hình để sử dụng tính năng AI Auto Biểu Cảm!");
+        showInlineToast("Vui lòng nhập Google Gemini API Key trong phần Cấu Hình!", "error");
         document.getElementById("input-gemini-key").focus();
         return;
     }
 
     try {
-        alert("Đang gửi kịch bản tới Google Gemini AI để chèn biểu cảm tự động...");
+        showInlineToast("Đang gửi kịch bản tới Google Gemini AI...", "info");
         const prompt = `Hãy tự động chèn các thẻ biểu cảm cảm xúc như [laughter], [sigh], [surprise-ah], [nhấn giọng] vào kịch bản sau một cách tự nhiên truyền cảm nhất. Chỉ trả về văn bản kịch bản hoàn chỉnh:\n\n${text}`;
         
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -94,14 +94,18 @@ async function autoExpress() {
             if (resultText) {
                 txtArea.value = resultText.trim();
                 updateCharCount();
-                alert("Đã chèn biểu cảm AI thành công!");
+                showInlineToast("Đã chèn biểu cảm AI thành công!", "success");
             }
         } else {
-            alert("Lỗi gọi Google Gemini API! Vui lòng kiểm tra lại Gemini API Key của bạn.");
+            showInlineToast("Lỗi gọi Google Gemini API! Kiểm tra lại API Key.", "error");
         }
     } catch (e) {
-        alert("Không thể kết nối Google Gemini API. Vui lòng kiểm tra mạng hoặc Key!");
+        showInlineToast("Không thể kết nối Google Gemini API. Kiểm tra mạng hoặc Key!", "error");
     }
+}
+
+function showInlineToast(msg, type = "info") {
+    console.log(`[TOAST - ${type.toUpperCase()}]: ${msg}`);
 }
 
 // THUẬT TOÁN CHIA ĐOẠN VĂN BẢN ĐỈNH CAO CHUẨN 100% TOOL EXE (LAUNCHER.PY)
@@ -110,7 +114,7 @@ function splitChunks() {
     const mode = document.getElementById("select-chunk-mode").value;
 
     if (!text) {
-        alert("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!");
+        showInlineToast("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!", "error");
         return;
     }
 
@@ -408,7 +412,6 @@ function addNewUser() {
     }
 
     usersDatabase.USERS[name] = { password: pass, quota: quota, used: 0, role: role };
-    alert(`Đã thêm thành công tài khoản: ${name} (Mật khẩu: ${pass}, Hạn mức: ${quota.toLocaleString('vi-VN')} ký tự)`);
     
     document.getElementById("new-user-name").value = "";
     document.getElementById("new-user-pass").value = "";
@@ -422,7 +425,6 @@ function editUserQuota(username) {
         const newQuota = parseInt(newQuotaStr);
         if (!isNaN(newQuota)) {
             currentAcc.quota = newQuota;
-            alert(`Đã cập nhật hạn mức ký tự mới cho ${username} thành ${newQuota.toLocaleString('vi-VN')} ký tự!`);
             renderUserList();
             if (currentUser && currentUser.username === username) {
                 currentUser.quota = newQuota;
@@ -439,34 +441,94 @@ function deleteUser(username) {
     }
 }
 
-// TẠO ÂM THANH KÈM KIỂM TRA HẠN MỨC THEO SỐ KÝ TỰ (CHARACTER COUNT QUOTA)
-function generateAudio() {
+// TẠO ÂM THANH: KHÔNG POPUP ALERT, CÓ THANH PROGRESS %, CHỈ TRỪ KÝ TỰ KHI TẠO THÀNH CÔNG!
+async function generateAudio() {
     if (!currentUser) {
-        alert("Vui lòng đăng nhập trước khi tạo âm thanh!");
         openAuthModal();
         return;
     }
 
     const text = document.getElementById("text-input").value.trim();
     if (!text) {
-        alert("Vui lòng nhập văn bản kịch bản trước khi tạo âm thanh!");
+        showInlineToast("Vui lòng nhập kịch bản trước khi tạo âm thanh!", "error");
         return;
     }
 
     const charCount = text.length;
 
+    // Kiểm tra hạn mức trước khi khởi chạy
     if (currentUser.used + charCount > currentUser.quota) {
-        alert(`Tài khoản ${currentUser.username} HẾT HẠN MỨC KÝ TỰ!\nĐã dùng: ${currentUser.used.toLocaleString('vi-VN')} / Tổng Quota: ${currentUser.quota.toLocaleString('vi-VN')} ký tự.\nĐoạn kịch bản này dài ${charCount.toLocaleString('vi-VN')} ký tự. Vui lòng liên hệ Admin để gia hạn thêm!`);
+        const progressCard = document.getElementById("progress-card");
+        progressCard.classList.remove("hidden");
+        document.getElementById("progress-status-text").innerText = `❌ Hết hạn mức ký tự! (Cần ${charCount.toLocaleString('vi-VN')} ký tự)`;
+        document.getElementById("progress-bar-fill").style.width = "0%";
+        document.getElementById("progress-percent").innerText = "0";
         return;
     }
 
-    const speed = document.getElementById("range-speed").value;
-    const emotion = document.getElementById("range-emotion").value;
-    const targetLang = document.getElementById("select-target-lang").value;
-    const denoise = document.getElementById("check-denoise").checked ? "Có" : "Không";
+    // Hiển thị Progress Card & Ẩn Card kết quả cũ
+    const progressCard = document.getElementById("progress-card");
+    const resultCard = document.getElementById("audio-result-card");
+    const btnGen = document.getElementById("btn-generate-all");
 
-    alert(`Đang kết nối Cỗ Máy Siêu Tạo Voice...\n• Số ký tự: ${charCount.toLocaleString('vi-VN')} ký tự\n• Ngôn ngữ: ${targetLang}\n• Tốc độ: ${speed}x | Cảm xúc: ${emotion}\n• Khử nhiễu AI: ${denoise}\n• Ký tự còn lại sau lượt này: ${(currentUser.quota - currentUser.used - charCount).toLocaleString('vi-VN')} ký tự`);
-    
-    currentUser.used += charCount;
-    document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+    progressCard.classList.remove("hidden");
+    resultCard.classList.add("hidden");
+    btnGen.disabled = true;
+
+    // Tự động mô phỏng tiến độ % siêu mượt từ 0% -> 95%
+    let currentPercent = 0;
+    document.getElementById("progress-status-text").innerText = "Đang kết nối Cỗ Máy Siêu Tạo Voice AI...";
+    document.getElementById("progress-bar-fill").style.width = "0%";
+    document.getElementById("progress-percent").innerText = "0";
+
+    const progressInterval = setInterval(() => {
+        if (currentPercent < 90) {
+            currentPercent += Math.floor(Math.random() * 15) + 5;
+            if (currentPercent > 90) currentPercent = 90;
+            
+            document.getElementById("progress-bar-fill").style.width = `${currentPercent}%`;
+            document.getElementById("progress-percent").innerText = currentPercent;
+
+            if (currentPercent > 40) {
+                document.getElementById("progress-status-text").innerText = "Đang tổng hợp giọng nói đa truyền cảm...";
+            }
+            if (currentPercent > 75) {
+                document.getElementById("progress-status-text").innerText = "Đang tinh chỉnh âm thanh & khử nhiễu nền...";
+            }
+        }
+    }, 400);
+
+    try {
+        // Giả lập thời gian sinh voice thực tế
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        // TẠO THÀNH CÔNG 100%:
+        clearInterval(progressInterval);
+        document.getElementById("progress-bar-fill").style.width = "100%";
+        document.getElementById("progress-percent").innerText = "100";
+        document.getElementById("progress-status-text").innerText = "✨ Siêu tạo âm thanh hoàn tất!";
+
+        // CHỈ TRỪ SỐ KÝ TỰ TÀI KHOẢN KHI ĐOẠN TẠO THÀNH CÔNG 100%!
+        currentUser.used += charCount;
+        document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+
+        // Hiển thị Card kết quả âm thanh
+        setTimeout(() => {
+            progressCard.classList.add("hidden");
+            resultCard.classList.remove("hidden");
+            btnGen.disabled = false;
+
+            const player = document.getElementById("audio-player");
+            const downloadLink = document.getElementById("download-link");
+            
+            // File mẫu âm thanh
+            player.src = "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg";
+            downloadLink.href = player.src;
+        }, 500);
+
+    } catch (e) {
+        clearInterval(progressInterval);
+        btnGen.disabled = false;
+        document.getElementById("progress-status-text").innerText = "❌ Lỗi sinh âm thanh! Vui lòng thử lại.";
+    }
 }

@@ -277,6 +277,72 @@ select, input {
     font-size: 0.9rem;
 }
 
+textarea {
+    width: 100%;
+    height: 280px;
+    min-height: 220px;
+    background: #0F172A;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: white;
+    padding: 14px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 10px 0 6px 0;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #00E5FF;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+}
+
+/* PROGRESS BAR HIỂN THỊ % TẠO VOICE */
+.progress-card {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.progress-status-title {
+    font-size: 0.9rem;
+    color: #00E5FF;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.progress-bar-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00E5FF, #10B981);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    color: #94A3B8;
+    font-weight: 600;
+}
+
 .input-with-btn {
     display: flex;
     gap: 8px;
