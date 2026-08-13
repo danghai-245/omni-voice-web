@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVoice AI Studio - Cỗ Máy Tạo Giọng Nói AI Đỉnh Cao</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- NAV BAR -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-[#00E5FF] fa-microchip"></i>
+            <span>OmniVoice <span>AI</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="#features">Tính năng</a>
+            <a href="#voices">Mẫu giọng</a>
+            <a href="#pricing">Bảng giá</a>
+        </div>
+        <div class="nav-actions">
+            <button id="btn-login-trigger" class="btn-secondary"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
+            <button id="btn-studio-trigger" class="btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Studio</button>
+        </div>
+    </nav>
+
+    <!-- LANDING PAGE SECTION -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <span class="badge"><i class="fa-solid fa-sparkles"></i> Công Nghệ Voice AI Đa Ngôn Ngữ thế hệ 2026</span>
+            <h1>Cỗ Máy Tạo Giọng Nói AI <br><span class="gradient-text">Tự Nhiên Như Người Thật</span></h1>
+            <p>Hệ thống nhái giọng đọc cao cấp powered by <strong>OmniVoice v0.2.1</strong> & <strong>VieNeu-TTS v3 Turbo</strong>. Tự động đồng bộ giọng từ ElevenLabs VIP.</p>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3 id="stat-voice-count">700+</h3>
+                    <p>Giọng Đọc VIP</p>
+                </div>
+                <div class="stat-card">
+                    <h3>99.8%</h3>
+                    <p>Độ Tự Nhiên</p>
+                </div>
+                <div class="stat-card">
+                    <h3><i class="fa-bolt"></i> Modal</h3>
+                    <p>Serverless GPU</p>
+                </div>
+            </div>
+
+            <div class="hero-btns">
+                <button class="btn-primary btn-large" onclick="openStudio()"><i class="fa-solid fa-play"></i> Dùng Thử Ngay Nào</button>
+                <a href="#demo" class="btn-outline btn-large"><i class="fa-solid fa-volume-high"></i> Nghe Thử Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- STUDIO DASHBOARD (LOGIN PROTECTED) -->
+    <section id="studio-section" class="studio-section hidden">
+        <div class="studio-header">
+            <h2><i class="fa-solid fa-sliders"></i> Bàn Làm Việc Voice AI Studio</h2>
+            <button class="btn-danger-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
+        </div>
+
+        <div class="studio-grid">
+            <!-- CỘT TRÁI: NHẬP VĂN BẢN & CHIA ĐOẠN -->
+            <div class="studio-card left-card">
+                <h3><i class="fa-solid fa-pen-to-square"></i> Văn Bản Cần Đọc</h3>
+                <textarea id="text-input" placeholder="Nhập văn bản kịch bản của bạn tại đây..."></textarea>
+                
+                <div class="action-bar">
+                    <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (Gemini)</button>
+                    <button class="btn-primary" onclick="splitChunks()"><i class="fa-solid fa-scissors"></i> Chia Đoạn Văn Bản</button>
+                </div>
+
+                <div class="chunks-list-container">
+                    <h4>Danh sách đoạn văn bản:</h4>
+                    <div id="chunks-list" class="chunks-list">
+                        <p class="placeholder-text">Chưa chia đoạn văn bản.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: CHỌN GIỌNG & CẤU HÌNH ENGINE -->
+            <div class="studio-card right-card">
+                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc</h3>
+                
+                <!-- BỘ LỌC MULTI-FILTER -->
+                <div class="filter-group">
+                    <select id="filter-lang" onchange="applyFilters()">
+                        <option value="Ngôn ngữ: Tất cả">Ngôn ngữ: Tất cả</option>
+                    </select>
+                    <select id="filter-gender" onchange="applyFilters()">
+                        <option value="Giới tính: Tất cả">Giới tính: Tất cả</option>
+                    </select>
+                    <select id="filter-cat" onchange="applyFilters()">
+                        <option value="Thể loại: Tất cả">Thể loại: Tất cả</option>
+                    </select>
+                </div>
+
+                <!-- TÌM KIẾM VOICE ID -->
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="input-voice-id" placeholder="Nhập mã Voice ID để chọn giọng nhanh..." oninput="searchVoiceId()">
+                </div>
+
+                <!-- COMBOBOX CHỌN GIỌNG -->
+                <div class="form-group">
+                    <label for="select-voice">Chọn Giọng Đọc Mẫu:</label>
+                    <select id="select-voice" onchange="onVoiceSelected()">
+                        <option>-- Đang nạp danh sách giọng từ GitHub --</option>
+                    </select>
+                </div>
+
+                <!-- AI ENGINE CHOICE -->
+                <div class="form-group">
+                    <label for="select-engine">AI Engine Serverless:</label>
+                    <select id="select-engine">
+                        <option value="OmniVoice v0.2.1">OmniVoice v0.2.1 (Đa ngôn ngữ)</option>
+                        <option value="VieNeu-TTS v3 Turbo">VieNeu-TTS v3 Turbo (Tiếng Việt Cảm xúc)</option>
+                    </select>
+                </div>
+
+                <button id="btn-generate-all" class="btn-accent btn-block" onclick="generateAudio()"><i class="fa-solid fa-cloud-arrow-up"></i> TẠO ÂM THANH HOÀN CHỈNH</button>
+
+                <div id="audio-result-card" class="result-card hidden">
+                    <p><i class="fa-solid fa-circle-check"></i> Tạo âm thanh thành công!</p>
+                    <audio id="audio-player" controls></audio>
+                    <a id="download-link" href="#" download class="btn-secondary-block"><i class="fa-solid fa-download"></i> Tải File Âm Thanh (.wav)</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+            <h2><i class="fa-solid fa-lock"></i> Đăng Nhập Studio</h2>
+            <p>Vui lòng nhập Mã Quyền Sử Dụng hoặc Mật Khẩu do Admin cấp để trải nghiệm hệ thống Voice AI.</p>
+            <div class="form-group">
+                <input type="password" id="auth-password" placeholder="Nhập Mật Khẩu / License Key..." />
+            </div>
+            <button class="btn-primary btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> Xác Nhận Đăng Nhập</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
