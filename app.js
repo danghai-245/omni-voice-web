@@ -34,8 +34,57 @@ document.addEventListener("DOMContentLoaded", () => {
     loadSavedGeminiKey();
     loadServerConfigFromGist();
     loadGitHubVoices();
+    onAiEngineChange();
     addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Chỉ dùng GitHub Gist).");
 });
+
+// HÀM XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
+function onAiEngineChange() {
+    const engineSelect = document.getElementById("select-ai-engine");
+    const selectedEngine = engineSelect ? engineSelect.value : "omni";
+    const emotionContainer = document.getElementById("emotion-tags-container");
+
+    const isVieneu = (selectedEngine === "vieneu");
+
+    // 1. Cập nhật danh sách Thẻ Biểu Cảm nhanh
+    if (emotionContainer) {
+        if (isVieneu) {
+            emotionContainer.innerHTML = `
+                <span class="tag-title">Chèn biểu cảm VieNeu:</span>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[cười]')">Cười 😊</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[thở dài]')">Thở dài 😮‍💨</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[hắng giọng]')">Hắng giọng 🗣️</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[thì thầm]')">Thì thầm 🤫</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[ngập ngừng]')">Ngập ngừng 🤐</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[nói chậm]')">Nói chậm 🐢</button>
+                <button type="button" class="btn-tag tag-highlight" onclick="insertEmotionTag('[nhấn giọng]')">Nhấn giọng 💥</button>
+            `;
+        } else {
+            emotionContainer.innerHTML = `
+                <span class="tag-title">Chèn biểu cảm OmniVoice:</span>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[laughter]')">Cười 😄</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-oh]')">Ồ! 😲</button>
+                <button type="button" class="btn-tag" onclick="insertEmotionTag('[question-en]')">Hỏi (En?) ❓</button>
+                <button type="button" class="btn-tag tag-highlight" onclick="insertEmotionTag('[dissatisfaction-hnn]')">Bất bình 😠</button>
+            `;
+        }
+    }
+
+    // 2. Ẩn/Hiện các thông số đặc thù theo AI Engine (Chuẩn widgets_to_hide trong Tool EXE)
+    const omniParams = document.querySelectorAll(".omni-only-param");
+    omniParams.forEach(el => {
+        if (isVieneu) {
+            el.classList.add("hidden");
+        } else {
+            el.classList.remove("hidden");
+        }
+    });
+
+    const engineNameStr = isVieneu ? "VieNeu-TTS v3 Turbo (48kHz Tiếng Việt Cảm xúc)" : "OmniVoice v0.2.1 (Multi-lingual)";
+    addAppLog(`Đã chuyển đổi sang AI Engine: ${engineNameStr}`);
+}
 
 // NẠP DUY NHẤT CẤU HÌNH TÀI KHOẢN VÀ MẬT KHẨU TỪ GITHUB GIST REST API V3 (REALTIME TỨC THÌ 0s DELAY)
 async function loadServerConfigFromGist() {
@@ -147,7 +196,11 @@ async function autoExpress() {
 
     try {
         addAppLog("Đang kết nối Google Gemini API để chèn biểu cảm...");
-        const prompt = `Hãy tự động chèn các thẻ biểu cảm cảm xúc như [laughter], [sigh], [surprise-ah], [nhấn giọng] vào kịch bản sau một cách tự nhiên truyền cảm nhất. Chỉ trả về văn bản kịch bản hoàn chỉnh:\n\n${text}`;
+        const engineSelect = document.getElementById("select-ai-engine");
+        const isVieneu = engineSelect && engineSelect.value === "vieneu";
+
+        const tagsHint = isVieneu ? "[cười], [thở dài], [hắng giọng], [thì thầm], [ngập ngừng], [nhấn giọng]" : "[laughter], [sigh], [surprise-ah], [dissatisfaction-hnn]";
+        const prompt = `Hãy tự động chèn các thẻ biểu cảm cảm xúc như ${tagsHint} vào kịch bản sau một cách tự nhiên truyền cảm nhất. Chỉ trả về văn bản kịch bản hoàn chỉnh:\n\n${text}`;
         
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: "POST",

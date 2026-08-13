@@ -97,15 +97,9 @@
                         <input type="file" id="file-import-txt" accept=".txt" class="hidden" onchange="handleFileTxtImport(event)">
                     </div>
 
-                    <div class="emotion-tags">
-                        <span class="tag-title">Chèn biểu cảm nhanh:</span>
-                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[laughter]')">Cười 😄</button>
-                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
-                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
-                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[ô!]')">Ồ! 😲</button>
-                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[hỏi?]')">Hỏi ?</button>
-                        <button type="button" class="btn-tag" onclick="insertEmotionTag('[bất bình]')">Bất bình 😡</button>
-                        <button type="button" class="btn-tag tag-highlight" onclick="insertEmotionTag('[nhấn giọng]')">Nhấn giọng 💥</button>
+                    <!-- DANH SÁCH THẺ BIỂU CẢM THAY ĐỔI ĐỘNG THEO AI ENGINE -->
+                    <div class="emotion-tags" id="emotion-tags-container">
+                        <!-- Render động qua JS -->
                     </div>
 
                     <textarea id="text-input" placeholder="Nhập hoặc dán đoạn văn bản kịch bản cần tạo giọng đọc tại đây..." oninput="updateCharCount()"></textarea>
@@ -195,20 +189,19 @@
                     </select>
                 </div>
 
-                <!-- BẢNG TINH CHỈNH PHÁT ÂM & ĐẶC TÍNH GIỌNG (CHỦẨN TOOL EXE) -->
+                <!-- BẢNG TINH CHỈNH PHÁT ÂM & ĐẶC TÍNH GIỌNG (CHỦẨN TOOL EXE DÙNG ĐÚNG 2 AI ENGINE) -->
                 <div class="card-box audio-params-card">
                     <h4><i class="fa-solid fa-sliders"></i> Tinh chỉnh phát âm & Đặc tính giọng</h4>
                     
                     <div class="form-group-inline">
-                        <label for="select-ai-engine">AI Engine:</label>
-                        <select id="select-ai-engine">
-                            <option value="omni">OmniVoice v0.2.1 (Multi-lingual)</option>
-                            <option value="f5">F5-TTS Fast Engine</option>
-                            <option value="vieneu">ViENeu Neural Model</option>
+                        <label for="select-ai-engine" style="color: #00E676; font-weight: 700;">🚀 AI Engine:</label>
+                        <select id="select-ai-engine" onchange="onAiEngineChange()" style="border-color: #00E676; font-weight: 700;">
+                            <option value="omni" selected>OmniVoice v0.2.1 (Multi-lingual)</option>
+                            <option value="vieneu">VieNeu-TTS v3 Turbo (48kHz Tiếng Việt Cảm xúc)</option>
                         </select>
                     </div>
 
-                    <div class="grid-2-col">
+                    <div class="grid-2-col omni-only-param">
                         <div class="form-group-inline">
                             <label for="select-target-lang">Ngôn ngữ đọc (Language):</label>
                             <select id="select-target-lang">
@@ -232,7 +225,7 @@
                     </div>
 
                     <div class="grid-2-col">
-                        <div class="form-group-inline">
+                        <div class="form-group-inline omni-only-param">
                             <label for="select-pitch">Cao độ (Pitch):</label>
                             <select id="select-pitch">
                                 <option value="auto">Auto</option>
@@ -257,7 +250,7 @@
                         </label>
                     </div>
 
-                    <div class="slider-group">
+                    <div class="slider-group omni-only-param">
                         <div class="slider-header">
                             <span>Khử nhiễu (Steps):</span>
                             <span class="slider-val" id="val-steps">32</span>
@@ -273,7 +266,7 @@
                         <input type="range" id="range-speed" min="0.5" max="2.0" step="0.05" value="1.0" oninput="document.getElementById('val-speed').innerText=this.value+'x'">
                     </div>
 
-                    <div class="slider-group">
+                    <div class="slider-group omni-only-param">
                         <div class="slider-header">
                             <span>Độ bám sát giọng (CFG Scale):</span>
                             <span class="slider-val" id="val-cfg">2.0</span>
@@ -281,7 +274,7 @@
                         <input type="range" id="range-cfg" min="1.0" max="5.0" step="0.1" value="2.0" oninput="document.getElementById('val-cfg').innerText=this.value">
                     </div>
 
-                    <div class="slider-group">
+                    <div class="slider-group omni-only-param">
                         <div class="slider-header">
                             <span>Độ biến hóa (Temperature):</span>
                             <span class="slider-val" id="val-temp">5.0</span>
@@ -332,7 +325,7 @@
                         <label for="input-silence-pause">Khoảng lặng giữa các đoạn (giây):</label>
                         <input type="number" id="input-silence-pause" value="0.2" step="0.1" min="0.0" max="5.0">
                     </div>
-                    <button class="btn-merge-all" onclick="mergeAllAudioChunks()"><i class="fa-solid fa-layer-group"></i> GỘP CÁC ĐOẠN & DỌN DẸP FILE TẠM</button>
+                    <button class="btn-merge-all" onclick="mergeAllAudioChunks()"><i class="fa-solid fa-layer-group"></i> GỘP CÁC ĐOẠN & DỌN DEEP FILE TẠM</button>
                 </div>
 
                 <div id="audio-result-card" class="result-card hidden">
