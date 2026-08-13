@@ -5,8 +5,8 @@
     "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
   ],
   "users": {
-    "admin": {
-      "password": "123",
+    "admin-0405": {
+      "password": "Hth1624!",
       "quota": 99999999,
       "used": 0,
       "role": "Admin VIP"
