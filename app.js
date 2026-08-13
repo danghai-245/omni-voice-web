@@ -1,12 +1,16 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
 
-// CẤU HÌNH GITHUB SECRET GIST DÙNG ĐỂ CHỨA LINK GPU MODAL BẢO MẬT
-let GITHUB_GIST_URL = ""; // Người dùng có thể dán link raw Gist vào đây
+// RAW LINK GIST CHỨA 3 LINK GPU MODAL THỰC TẾ
+const GITHUB_GIST_URL = "https://gist.githubusercontent.com/danghai-245/38bd9e7788def62592741f519581bde0/raw";
 
 let allVoiceMetadata = [];
 let currentUser = null;
-let modalGpuUrls = ["https://modal.com"]; // Hỗ trợ xoay vòng nhiều link GPU Modal
+let modalGpuUrls = [
+    "https://hhhh01234501--vieneu-tts-serverless-vieneumodel-generate.modal.run",
+    "https://hai319959--vieneu-tts-serverless-vieneumodel-generate.modal.run",
+    "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
+];
 let usersDatabase = {
     "USERS": {
         "admin": { "password": "123", "quota": 99999999, "used": 0, "role": "Admin VIP" },
@@ -25,7 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("user-badge").classList.add("hidden");
 
     loadSavedGeminiKey();
-    loadSavedGistUrl();
     loadServerConfig();
     loadGitHubVoices();
 });
@@ -36,18 +39,6 @@ function updateCharCount() {
     if (charCountEl) {
         charCountEl.innerHTML = `<i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>${text.length.toLocaleString('vi-VN')}</strong> ký tự`;
     }
-}
-
-// QUẢN LÝ GITHUB GIST BẢO MẬT ĐỂ NẠP LINK GPU MODAL
-function loadSavedGistUrl() {
-    const savedGist = localStorage.getItem("modal_gist_url") || "";
-    if (savedGist) GITHUB_GIST_URL = savedGist;
-}
-
-function saveGistUrl(url) {
-    localStorage.setItem("modal_gist_url", url);
-    GITHUB_GIST_URL = url;
-    loadServerConfig();
 }
 
 // QUẢN LÝ CẤU HÌNH GOOGLE GEMINI API KEY
@@ -204,34 +195,29 @@ function splitChunks() {
     });
 }
 
-// Nạp cấu hình Link GPU từ GitHub Gist Bảo Mật hoặc server_config.json
+// Nạp cấu hình Link GPU từ Gist của người dùng & server_config.json
 async function loadServerConfig() {
-    // 1. Ưu tiên nạp danh sách Link GPU từ Secret Gist nếu có
     if (GITHUB_GIST_URL) {
         try {
             const gistResp = await fetch(GITHUB_GIST_URL + "?t=" + Date.now());
             if (gistResp.ok) {
                 const gistData = await gistResp.json();
-                if (Array.isArray(gistData.gpu_urls) && gistData.gpu_urls.length > 0) {
+                if (Array.isArray(gistData) && gistData.length > 0) {
+                    modalGpuUrls = gistData;
+                    console.log(`Đã nạp thành công ${modalGpuUrls.length} link GPU Modal từ Gist!`);
+                } else if (gistData.gpu_urls && Array.isArray(gistData.gpu_urls)) {
                     modalGpuUrls = gistData.gpu_urls;
-                    console.log(`Đã nạp ${modalGpuUrls.length} link GPU Modal từ Secret Gist!`);
-                } else if (gistData.gpu_url) {
-                    modalGpuUrls = [gistData.gpu_url];
                 }
             }
         } catch (e) {
-            console.log("Không nạp được Gist, chuyển sang server_config.json");
+            console.log("Không nạp được Gist, dùng server_config.json");
         }
     }
 
-    // 2. Nạp cấu hình mặc định từ server_config.json
     try {
         const resp = await fetch(GITHUB_CONFIG_URL + "?t=" + Date.now());
         if (resp.ok) {
             const data = await resp.json();
-            if (data.gpu_urls && Array.isArray(data.gpu_urls)) modalGpuUrls = data.gpu_urls;
-            else if (data.gpu_url) modalGpuUrls = [data.gpu_url];
-            
             if (data.users) usersDatabase.USERS = data.users;
         }
     } catch (e) {
@@ -239,11 +225,13 @@ async function loadServerConfig() {
     }
 }
 
-// Hàm lấy 1 link GPU Modal ngẫu nhiên (Load Balancing) để tránh quá tải
+// Hàm lấy 1 link GPU Modal ngẫu nhiên (Load Balancing xoay vòng cả 3 server GPU)
 function getRandomGpuUrl() {
     if (!modalGpuUrls || modalGpuUrls.length === 0) return "https://modal.com";
     const randIdx = Math.floor(Math.random() * modalGpuUrls.length);
-    return modalGpuUrls[randIdx];
+    const selectedUrl = modalGpuUrls[randIdx];
+    console.log(`[LOAD BALANCING]: Sử dụng GPU Modal #${randIdx + 1}: ${selectedUrl}`);
+    return selectedUrl;
 }
 
 // Nạp danh sách giọng đọc từ GitHub Repo
@@ -517,9 +505,8 @@ async function generateAudio() {
     resultCard.classList.add("hidden");
     btnGen.disabled = true;
 
-    // Chọn ngẫu nhiên 1 link GPU Modal từ danh sách
+    // Chọn ngẫu nhiên 1 trong 3 link GPU Modal từ Gist của bạn (Load Balancing)
     const targetGpuUrl = getRandomGpuUrl();
-    console.log(`Đang gọi GPU Modal tại endpoint: ${targetGpuUrl}`);
 
     let currentPercent = 0;
     document.getElementById("progress-status-text").innerText = "Đang kết nối Cỗ Máy Siêu Tạo Voice AI...";
@@ -535,10 +522,10 @@ async function generateAudio() {
             document.getElementById("progress-percent").innerText = currentPercent;
 
             if (currentPercent > 40) {
-                document.getElementById("progress-status-text").innerText = "Đang tổng hợp giọng nói đa truyền cảm...";
+                document.getElementById("progress-status-text").innerText = `Đang kết nối Server GPU Modal: ${targetGpuUrl.split('--')[0].replace('https://', '')}...`;
             }
             if (currentPercent > 75) {
-                document.getElementById("progress-status-text").innerText = "Đang tinh chỉnh âm thanh & khử nhiễu nền...";
+                document.getElementById("progress-status-text").innerText = "Đang tổng hợp giọng nói & khử nhiễu nền AI...";
             }
         }
     }, 400);

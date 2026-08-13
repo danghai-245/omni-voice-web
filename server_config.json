@@ -1,21 +1,25 @@
 {
-  "gpu_url": "https://modal.com",
+  "gpu_urls": [
+    "https://hhhh01234501--vieneu-tts-serverless-vieneumodel-generate.modal.run",
+    "https://hai319959--vieneu-tts-serverless-vieneumodel-generate.modal.run",
+    "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
+  ],
   "users": {
-    "admin-0405": {
-      "password": "Hth1624!",
-      "quota": 999999,
+    "admin": {
+      "password": "123",
+      "quota": 99999999,
       "used": 0,
       "role": "Admin VIP"
     },
     "tester": {
       "password": "123",
-      "quota": 20,
+      "quota": 100000,
       "used": 0,
       "role": "Dùng thử"
     },
     "khach1": {
       "password": "456",
-      "quota": 50,
+      "quota": 500000,
       "used": 0,
       "role": "Khách hàng VIP"
     }
