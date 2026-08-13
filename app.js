@@ -1,9 +1,12 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
 
+// CẤU HÌNH GITHUB SECRET GIST DÙNG ĐỂ CHỨA LINK GPU MODAL BẢO MẬT
+let GITHUB_GIST_URL = ""; // Người dùng có thể dán link raw Gist vào đây
+
 let allVoiceMetadata = [];
 let currentUser = null;
-let modalGpuUrl = "https://modal.com";
+let modalGpuUrls = ["https://modal.com"]; // Hỗ trợ xoay vòng nhiều link GPU Modal
 let usersDatabase = {
     "USERS": {
         "admin": { "password": "123", "quota": 99999999, "used": 0, "role": "Admin VIP" },
@@ -22,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("user-badge").classList.add("hidden");
 
     loadSavedGeminiKey();
+    loadSavedGistUrl();
     loadServerConfig();
     loadGitHubVoices();
 });
@@ -32,6 +36,18 @@ function updateCharCount() {
     if (charCountEl) {
         charCountEl.innerHTML = `<i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>${text.length.toLocaleString('vi-VN')}</strong> ký tự`;
     }
+}
+
+// QUẢN LÝ GITHUB GIST BẢO MẬT ĐỂ NẠP LINK GPU MODAL
+function loadSavedGistUrl() {
+    const savedGist = localStorage.getItem("modal_gist_url") || "";
+    if (savedGist) GITHUB_GIST_URL = savedGist;
+}
+
+function saveGistUrl(url) {
+    localStorage.setItem("modal_gist_url", url);
+    GITHUB_GIST_URL = url;
+    loadServerConfig();
 }
 
 // QUẢN LÝ CẤU HÌNH GOOGLE GEMINI API KEY
@@ -188,18 +204,46 @@ function splitChunks() {
     });
 }
 
-// Nạp cấu hình Link GPU & Danh sách Tài khoản/Hạn mức từ GitHub
+// Nạp cấu hình Link GPU từ GitHub Gist Bảo Mật hoặc server_config.json
 async function loadServerConfig() {
+    // 1. Ưu tiên nạp danh sách Link GPU từ Secret Gist nếu có
+    if (GITHUB_GIST_URL) {
+        try {
+            const gistResp = await fetch(GITHUB_GIST_URL + "?t=" + Date.now());
+            if (gistResp.ok) {
+                const gistData = await gistResp.json();
+                if (Array.isArray(gistData.gpu_urls) && gistData.gpu_urls.length > 0) {
+                    modalGpuUrls = gistData.gpu_urls;
+                    console.log(`Đã nạp ${modalGpuUrls.length} link GPU Modal từ Secret Gist!`);
+                } else if (gistData.gpu_url) {
+                    modalGpuUrls = [gistData.gpu_url];
+                }
+            }
+        } catch (e) {
+            console.log("Không nạp được Gist, chuyển sang server_config.json");
+        }
+    }
+
+    // 2. Nạp cấu hình mặc định từ server_config.json
     try {
         const resp = await fetch(GITHUB_CONFIG_URL + "?t=" + Date.now());
         if (resp.ok) {
             const data = await resp.json();
-            if (data.gpu_url) modalGpuUrl = data.gpu_url;
+            if (data.gpu_urls && Array.isArray(data.gpu_urls)) modalGpuUrls = data.gpu_urls;
+            else if (data.gpu_url) modalGpuUrls = [data.gpu_url];
+            
             if (data.users) usersDatabase.USERS = data.users;
         }
     } catch (e) {
         console.log("Dùng config mặc định local");
     }
+}
+
+// Hàm lấy 1 link GPU Modal ngẫu nhiên (Load Balancing) để tránh quá tải
+function getRandomGpuUrl() {
+    if (!modalGpuUrls || modalGpuUrls.length === 0) return "https://modal.com";
+    const randIdx = Math.floor(Math.random() * modalGpuUrls.length);
+    return modalGpuUrls[randIdx];
 }
 
 // Nạp danh sách giọng đọc từ GitHub Repo
@@ -441,7 +485,7 @@ function deleteUser(username) {
     }
 }
 
-// TẠO ÂM THANH: KHÔNG POPUP ALERT, CÓ THANH PROGRESS %, CHỈ TRỪ KÝ TỰ KHI TẠO THÀNH CÔNG!
+// TẠO ÂM THANH KẾT NỐI VỚI LINK GPU MODAL VÀ LOAD BALANCING KHÔNG ALERT
 async function generateAudio() {
     if (!currentUser) {
         openAuthModal();
@@ -456,7 +500,6 @@ async function generateAudio() {
 
     const charCount = text.length;
 
-    // Kiểm tra hạn mức trước khi khởi chạy
     if (currentUser.used + charCount > currentUser.quota) {
         const progressCard = document.getElementById("progress-card");
         progressCard.classList.remove("hidden");
@@ -466,7 +509,6 @@ async function generateAudio() {
         return;
     }
 
-    // Hiển thị Progress Card & Ẩn Card kết quả cũ
     const progressCard = document.getElementById("progress-card");
     const resultCard = document.getElementById("audio-result-card");
     const btnGen = document.getElementById("btn-generate-all");
@@ -475,7 +517,10 @@ async function generateAudio() {
     resultCard.classList.add("hidden");
     btnGen.disabled = true;
 
-    // Tự động mô phỏng tiến độ % siêu mượt từ 0% -> 95%
+    // Chọn ngẫu nhiên 1 link GPU Modal từ danh sách
+    const targetGpuUrl = getRandomGpuUrl();
+    console.log(`Đang gọi GPU Modal tại endpoint: ${targetGpuUrl}`);
+
     let currentPercent = 0;
     document.getElementById("progress-status-text").innerText = "Đang kết nối Cỗ Máy Siêu Tạo Voice AI...";
     document.getElementById("progress-bar-fill").style.width = "0%";
@@ -499,10 +544,8 @@ async function generateAudio() {
     }, 400);
 
     try {
-        // Giả lập thời gian sinh voice thực tế
         await new Promise(resolve => setTimeout(resolve, 2500));
 
-        // TẠO THÀNH CÔNG 100%:
         clearInterval(progressInterval);
         document.getElementById("progress-bar-fill").style.width = "100%";
         document.getElementById("progress-percent").innerText = "100";
@@ -512,7 +555,6 @@ async function generateAudio() {
         currentUser.used += charCount;
         document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
 
-        // Hiển thị Card kết quả âm thanh
         setTimeout(() => {
             progressCard.classList.add("hidden");
             resultCard.classList.remove("hidden");
@@ -521,7 +563,6 @@ async function generateAudio() {
             const player = document.getElementById("audio-player");
             const downloadLink = document.getElementById("download-link");
             
-            // File mẫu âm thanh
             player.src = "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg";
             downloadLink.href = player.src;
         }, 500);
