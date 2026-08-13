@@ -165,6 +165,6 @@ function generateAudio() {
         return;
     }
 
-    alert(`Đang gửi yêu cầu sinh giọng nói tới Server GPU (${modalGpuUrl})... Lượt tạo còn lại: ${currentUser.quota - currentUser.used - 1}`);
+    alert(`Đang kết nối Cỗ Máy Siêu Tạo Voice để sinh giọng nói... Lượt tạo còn lại: ${currentUser.quota - currentUser.used - 1}`);
     currentUser.used += 1;
 }

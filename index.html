@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniVoice AI Studio - Cỗ Máy Tạo Giọng Nói AI Đỉnh Cao</title>
+    <title>HTH Supper Voice Vip - Cỗ Máy Siêu Tạo Voice AI</title>
+    <link rel="icon" type="image/x-icon" href="icon.ico">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
@@ -13,8 +14,8 @@
     <!-- NAV BAR -->
     <nav class="navbar">
         <div class="logo">
-            <i class="fa-solid fa-[#00E5FF] fa-microchip"></i>
-            <span>OmniVoice <span>AI</span></span>
+            <img src="hth_logo.png" alt="HTH Logo" class="nav-logo-img">
+            <span>HTH Supper <span>Voice Vip</span></span>
         </div>
         <div class="nav-links">
             <a href="#features">Tính năng</a>
@@ -22,17 +23,17 @@
             <a href="#pricing">Bảng giá</a>
         </div>
         <div class="nav-actions">
-            <button id="btn-login-trigger" class="btn-secondary"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
-            <button id="btn-studio-trigger" class="btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Studio</button>
+            <button id="btn-login-trigger" class="btn-secondary" onclick="openStudio()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
+            <button id="btn-studio-trigger" class="btn-primary" onclick="openStudio()"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Studio</button>
         </div>
     </nav>
 
     <!-- LANDING PAGE SECTION -->
     <section class="hero-section">
         <div class="hero-content">
-            <span class="badge"><i class="fa-solid fa-sparkles"></i> Công Nghệ Voice AI Đa Ngôn Ngữ thế hệ 2026</span>
-            <h1>Cỗ Máy Tạo Giọng Nói AI <br><span class="gradient-text">Tự Nhiên Như Người Thật</span></h1>
-            <p>Hệ thống nhái giọng đọc cao cấp powered by <strong>OmniVoice v0.2.1</strong> & <strong>VieNeu-TTS v3 Turbo</strong>. Tự động đồng bộ giọng từ ElevenLabs VIP.</p>
+            <span class="badge"><i class="fa-solid fa-sparkles"></i> Công Nghệ Voice AI Cảm Xúc Hàng Đầu 2026</span>
+            <h1>Cỗ Máy Siêu Tạo Voice <br><span class="gradient-text">Tự Nhiên Như Người Thật</span></h1>
+            <p>Hệ thống cỗ máy siêu tạo voice đa ngôn ngữ truyền cảm, sống động. Tự động đồng bộ hơn 700+ giọng đọc chất lượng cao VIP.</p>
             
             <div class="stats-container">
                 <div class="stat-card">
@@ -44,14 +45,14 @@
                     <p>Độ Tự Nhiên</p>
                 </div>
                 <div class="stat-card">
-                    <h3><i class="fa-bolt"></i> Modal</h3>
-                    <p>Serverless GPU</p>
+                    <h3><i class="fa-solid fa-heart-pulse"></i> 100%</h3>
+                    <p>Truyền Cảm</p>
                 </div>
             </div>
 
             <div class="hero-btns">
                 <button class="btn-primary btn-large" onclick="openStudio()"><i class="fa-solid fa-play"></i> Dùng Thử Ngay Nào</button>
-                <a href="#demo" class="btn-outline btn-large"><i class="fa-solid fa-volume-high"></i> Nghe Thử Demo</a>
+                <a href="#demo" class="btn-outline btn-large" onclick="openStudio()"><i class="fa-solid fa-volume-high"></i> Trải Nghiệm Studio</a>
             </div>
         </div>
     </section>
@@ -59,7 +60,7 @@
     <!-- STUDIO DASHBOARD (LOGIN PROTECTED) -->
     <section id="studio-section" class="studio-section hidden">
         <div class="studio-header">
-            <h2><i class="fa-solid fa-sliders"></i> Bàn Làm Việc Voice AI Studio</h2>
+            <h2><i class="fa-solid fa-sliders"></i> Bàn Làm Việc HTH Supper Voice Vip Studio</h2>
             <button class="btn-danger-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
         </div>
 
@@ -70,7 +71,7 @@
                 <textarea id="text-input" placeholder="Nhập văn bản kịch bản của bạn tại đây..."></textarea>
                 
                 <div class="action-bar">
-                    <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (Gemini)</button>
+                    <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (AI)</button>
                     <button class="btn-primary" onclick="splitChunks()"><i class="fa-solid fa-scissors"></i> Chia Đoạn Văn Bản</button>
                 </div>
 
@@ -109,23 +110,23 @@
                 <div class="form-group">
                     <label for="select-voice">Chọn Giọng Đọc Mẫu:</label>
                     <select id="select-voice" onchange="onVoiceSelected()">
-                        <option>-- Đang nạp danh sách giọng từ GitHub --</option>
+                        <option>-- Đang nạp danh sách giọng VIP --</option>
                     </select>
                 </div>
 
                 <!-- AI ENGINE CHOICE -->
                 <div class="form-group">
-                    <label for="select-engine">AI Engine Serverless:</label>
+                    <label for="select-engine">Chế Độ Siêu Tạo Voice:</label>
                     <select id="select-engine">
-                        <option value="OmniVoice v0.2.1">OmniVoice v0.2.1 (Đa ngôn ngữ)</option>
-                        <option value="VieNeu-TTS v3 Turbo">VieNeu-TTS v3 Turbo (Tiếng Việt Cảm xúc)</option>
+                        <option value="Cỗ máy Siêu Tạo Voice v1 (VIP)">Cỗ máy Siêu Tạo Voice v1 (VIP Đa Ngôn Ngữ)</option>
+                        <option value="Cỗ máy Siêu Tạo Voice v2 (Cảm xúc)">Cỗ máy Siêu Tạo Voice v2 (Tiếng Việt Cảm Xúc)</option>
                     </select>
                 </div>
 
-                <button id="btn-generate-all" class="btn-accent btn-block" onclick="generateAudio()"><i class="fa-solid fa-cloud-arrow-up"></i> TẠO ÂM THANH HOÀN CHỈNH</button>
+                <button id="btn-generate-all" class="btn-accent btn-block" onclick="generateAudio()"><i class="fa-solid fa-cloud-arrow-up"></i> SIÊU TẠO ÂM THANH HOÀN CHỈNH</button>
 
                 <div id="audio-result-card" class="result-card hidden">
-                    <p><i class="fa-solid fa-circle-check"></i> Tạo âm thanh thành công!</p>
+                    <p><i class="fa-solid fa-circle-check"></i> Siêu tạo âm thanh thành công!</p>
                     <audio id="audio-player" controls></audio>
                     <a id="download-link" href="#" download class="btn-secondary-block"><i class="fa-solid fa-download"></i> Tải File Âm Thanh (.wav)</a>
                 </div>
