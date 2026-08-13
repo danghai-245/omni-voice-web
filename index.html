@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HTH Supper Voice Vip - Cỗ Máy Siêu Tạo Voice AI</title>
     <link rel="icon" type="image/x-icon" href="icon.ico">
     <link rel="stylesheet" href="style.css">
@@ -62,7 +62,7 @@
         </div>
     </section>
 
-    <!-- STUDIO DASHBOARD (FULL APP WHEN LOGGED IN) -->
+    <!-- STUDIO DASHBOARD (RESPONSIVE FOR ALL DEVICES) -->
     <section id="studio-section" class="studio-section hidden">
         <div class="studio-header-bar">
             <div class="header-left">
@@ -72,7 +72,7 @@
         </div>
 
         <div class="studio-grid">
-            <!-- CỘT TRÁI: NHẬP VĂN BẢN & CÁC NÚT BIỂU CẢM (TƯƠNG TỰ TOOL EXE) -->
+            <!-- CỘT TRÁI: NHẬP VĂN BẢN & CÁC NÚT BIỂU CẢM -->
             <div class="studio-card left-card">
                 <h3><i class="fa-solid fa-pen-to-square"></i> Văn Bản Kịch Bản Cần Tạo Voice</h3>
                 
@@ -91,7 +91,7 @@
                 <textarea id="text-input" placeholder="Nhập kịch bản văn bản của bạn tại đây hoặc dán nội dung vào đây..."></textarea>
                 
                 <div class="action-bar">
-                    <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (AI)</button>
+                    <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (AI Gemini)</button>
                     <button class="btn-primary" onclick="splitChunks()"><i class="fa-solid fa-scissors"></i> Chia Đoạn Văn Bản</button>
                 </div>
 
@@ -103,9 +103,9 @@
                 </div>
             </div>
 
-            <!-- CỘT PHẢI: BỘ LỌC ĐA ĐIỀU KIỆN & CẤU HÌNH ENGINE -->
+            <!-- CỘT PHẢI: CHỌN GIỌNG & CẤU HÌNH API GOOGLE GEMINI -->
             <div class="studio-card right-card">
-                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc & Engine</h3>
+                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc & API Google</h3>
                 
                 <!-- BỘ LỌC MULTI-FILTER -->
                 <div class="filter-group">
@@ -132,6 +132,15 @@
                     <select id="select-voice" onchange="onVoiceSelected()">
                         <option>-- Đang nạp danh sách giọng VIP --</option>
                     </select>
+                </div>
+
+                <!-- CẤU HÌNH API GOOGLE GEMINI -->
+                <div class="form-group api-key-group">
+                    <label for="input-gemini-key"><i class="fa-brands fa-google"></i> Google Gemini API Key (Auto Biểu Cảm):</label>
+                    <div class="input-with-btn">
+                        <input type="password" id="input-gemini-key" placeholder="Nhập Google Gemini API Key (AI-zaSy...)" onchange="saveGeminiKey()">
+                        <button class="btn-icon" onclick="toggleKeyVisibility()"><i id="key-eye-icon" class="fa-solid fa-eye"></i></button>
+                    </div>
                 </div>
 
                 <!-- AI ENGINE CHOICE -->

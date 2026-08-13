@@ -21,9 +21,79 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("studio-section").classList.add("hidden");
     document.getElementById("user-badge").classList.add("hidden");
 
+    loadSavedGeminiKey();
     loadServerConfig();
     loadGitHubVoices();
 });
+
+// QUẢN LÝ CẤU HÌNH GOOGLE GEMINI API KEY
+function loadSavedGeminiKey() {
+    const savedKey = localStorage.getItem("gemini_api_key") || "";
+    const input = document.getElementById("input-gemini-key");
+    if (input) input.value = savedKey;
+}
+
+function saveGeminiKey() {
+    const key = document.getElementById("input-gemini-key").value.trim();
+    localStorage.setItem("gemini_api_key", key);
+    console.log("Đã lưu Google Gemini API Key vào LocalStorage!");
+}
+
+function toggleKeyVisibility() {
+    const input = document.getElementById("input-gemini-key");
+    const icon = document.getElementById("key-eye-icon");
+    if (input.type === "password") {
+        input.type = "text";
+        icon.className = "fa-solid fa-eye-slash";
+    } else {
+        input.type = "password";
+        icon.className = "fa-solid fa-eye";
+    }
+}
+
+// TÍNH NĂNG AUTO BIỂU CẢM QUA GOOGLE GEMINI API
+async function autoExpress() {
+    const txtArea = document.getElementById("text-input");
+    const text = txtArea.value.trim();
+    const apiKey = localStorage.getItem("gemini_api_key") || document.getElementById("input-gemini-key").value.trim();
+
+    if (!text) {
+        alert("Vui lòng nhập văn bản kịch bản trước khi gọi AI Auto Biểu Cảm!");
+        return;
+    }
+
+    if (!apiKey) {
+        alert("Vui lòng nhập Google Gemini API Key trong phần Cấu Hình để sử dụng tính năng AI Auto Biểu Cảm!");
+        document.getElementById("input-gemini-key").focus();
+        return;
+    }
+
+    try {
+        alert("Đang gửi kịch bản tới Google Gemini AI để chèn biểu cảm tự động...");
+        const prompt = `Hãy tự động chèn các thẻ biểu cảm cảm xúc như [laughter], [sigh], [surprise-ah], [nhấn giọng] vào kịch bản sau một cách tự nhiên truyền cảm nhất. Chỉ trả về văn bản kịch bản hoàn chỉnh:\n\n${text}`;
+        
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (resultText) {
+                txtArea.value = resultText.trim();
+                alert("Đã chèn biểu cảm AI thành công!");
+            }
+        } else {
+            alert("Lỗi gọi Google Gemini API! Vui lòng kiểm tra lại Gemini API Key của bạn.");
+        }
+    } catch (e) {
+        alert("Không thể kết nối Google Gemini API. Vui lòng kiểm tra mạng hoặc Key!");
+    }
+}
 
 // Nạp cấu hình Link GPU & Danh sách Tài khoản/Hạn mức từ GitHub
 async function loadServerConfig() {
@@ -173,18 +243,15 @@ function submitAuth() {
 }
 
 function showStudioView() {
-    // Ẩn hoàn toàn Trang giới thiệu & Menu giới thiệu
     document.getElementById("hero-section").classList.add("hidden");
     document.getElementById("nav-links").classList.add("hidden");
     document.getElementById("btn-login-trigger").classList.add("hidden");
     document.getElementById("btn-studio-trigger").classList.add("hidden");
 
-    // Hiển thị User Badge ở Navbar & Trang Studio công cụ
     document.getElementById("user-badge").classList.remove("hidden");
     document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
     document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
 
-    // Hiển thị Trang công cụ Studio độc lập
     document.getElementById("studio-section").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
