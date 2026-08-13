@@ -1,5 +1,4 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
-// Link trạm trung chuyển Server URL & Quản lý User trên GitHub Gist/Repo
 const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
 
 let allVoiceMetadata = [];
@@ -8,7 +7,7 @@ let modalGpuUrl = "https://modal.com";
 let usersDatabase = {
     "USERS": {
         "admin": { "password": "123", "quota": 999999, "used": 0, "role": "Admin VIP" },
-        "test": { "password": "123", "quota": 10, "used": 0, "role": "Dùng thử" }
+        "tester": { "password": "123", "quota": 20, "used": 0, "role": "Dùng thử" }
     }
 };
 
@@ -25,7 +24,6 @@ async function loadServerConfig() {
             const data = await resp.json();
             if (data.gpu_url) modalGpuUrl = data.gpu_url;
             if (data.users) usersDatabase.USERS = data.users;
-            console.log("Đã nạp Link GPU từ GitHub:", modalGpuUrl);
         }
     } catch (e) {
         console.log("Dùng config mặc định local");
@@ -113,18 +111,35 @@ function searchVoiceId() {
     }
 }
 
-// BẢO MẬT & QUẢN LÝ TÀI KHOẢN / HẠN MỨC (QUOTA)
-function openStudio() {
-    if (!currentUser) {
-        document.getElementById("auth-modal").classList.remove("hidden");
-    } else {
-        document.getElementById("studio-section").classList.remove("hidden");
-        document.getElementById("studio-section").scrollIntoView({ behavior: "smooth" });
-    }
+// CHÈN THẺ BIỂU CẢM VÀO CON TRỎ VĂN BẢN (TƯƠNG TỰ TOOL EXE)
+function insertEmotionTag(tag) {
+    const txtArea = document.getElementById("text-input");
+    const startPos = txtArea.selectionStart;
+    const endPos = txtArea.selectionEnd;
+    const text = txtArea.value;
+
+    txtArea.value = text.substring(0, startPos) + ` ${tag} ` + text.substring(endPos);
+    txtArea.focus();
+    txtArea.selectionStart = startPos + tag.length + 2;
+    txtArea.selectionEnd = startPos + tag.length + 2;
+}
+
+// BẢO MẬT & ĐĂNG NHẬP / CHUYỂN TRANG CÔNG CỤ ĐỘC LẬP
+function openAuthModal() {
+    document.getElementById("auth-modal").classList.remove("hidden");
+    document.getElementById("auth-username").focus();
 }
 
 function closeAuthModal() {
     document.getElementById("auth-modal").classList.add("hidden");
+}
+
+function openStudio() {
+    if (!currentUser) {
+        openAuthModal();
+    } else {
+        showStudioView();
+    }
 }
 
 function submitAuth() {
@@ -139,24 +154,47 @@ function submitAuth() {
     const userAcc = usersDatabase.USERS[username];
     if (userAcc && userAcc.password === pass) {
         currentUser = { username, ...userAcc };
-        alert(`Đăng nhập thành công! Xin chào ${username} (${userAcc.role}). Hạn mức: ${userAcc.used}/${userAcc.quota} lượt.`);
         closeAuthModal();
-        openStudio();
+        showStudioView();
     } else {
         alert("Tên tài khoản hoặc mật khẩu không chính xác!");
     }
 }
 
+function showStudioView() {
+    // Ẩn trang giới thiệu & Menu giới thiệu
+    document.getElementById("hero-section").classList.add("hidden");
+    document.getElementById("nav-links").classList.add("hidden");
+    document.getElementById("btn-login-trigger").classList.add("hidden");
+    document.getElementById("btn-studio-trigger").classList.add("hidden");
+
+    // Hiển thị User Badge ở Navbar & Trang Studio
+    document.getElementById("user-badge").classList.remove("hidden");
+    document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
+    document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
+
+    // Hiển thị Trang công cụ Studio độc lập
+    document.getElementById("studio-section").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function logout() {
     currentUser = null;
     document.getElementById("studio-section").classList.add("hidden");
+    document.getElementById("user-badge").classList.add("hidden");
+
+    document.getElementById("hero-section").classList.remove("hidden");
+    document.getElementById("nav-links").classList.remove("hidden");
+    document.getElementById("btn-login-trigger").classList.remove("hidden");
+    document.getElementById("btn-studio-trigger").classList.remove("hidden");
+
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function generateAudio() {
     if (!currentUser) {
         alert("Vui lòng đăng nhập trước khi tạo âm thanh!");
-        openStudio();
+        openAuthModal();
         return;
     }
 
@@ -167,4 +205,26 @@ function generateAudio() {
 
     alert(`Đang kết nối Cỗ Máy Siêu Tạo Voice để sinh giọng nói... Lượt tạo còn lại: ${currentUser.quota - currentUser.used - 1}`);
     currentUser.used += 1;
+    document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
+}
+
+function splitChunks() {
+    const text = document.getElementById("text-input").value.trim();
+    if (!text) {
+        alert("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!");
+        return;
+    }
+
+    const sentences = text.split(/(?<=[.!?\n])\s+/);
+    const chunksList = document.getElementById("chunks-list");
+    chunksList.innerHTML = "";
+
+    sentences.forEach((s, idx) => {
+        if (s.trim()) {
+            const div = document.createElement("div");
+            div.className = "chunk-item";
+            div.innerHTML = `<strong>Đoạn ${idx + 1}:</strong> ${s.trim()}`;
+            chunksList.appendChild(div);
+        }
+    });
 }

@@ -204,8 +204,80 @@ select, input {
     padding-left: 36px;
 }
 
-.hidden {
-    display: none !important;
+.user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: #10B981;
+    font-weight: 700;
+}
+
+.quota-badge {
+    background: #10B981;
+    color: #0F172A;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+}
+
+.btn-logout-sm {
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.express-tags-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.tags-label {
+    font-size: 0.8rem;
+    color: #94A3B8;
+    font-weight: 600;
+}
+
+.tag-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #E2E8F0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.tag-btn:hover {
+    background: rgba(0, 229, 255, 0.2);
+    color: #00E5FF;
+    border-color: #00E5FF;
+}
+
+.studio-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.status-tag {
+    color: #10B981;
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .modal-overlay {

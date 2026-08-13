@@ -17,19 +17,24 @@
             <img src="hth_logo.png" alt="HTH Logo" class="nav-logo-img">
             <span>HTH Supper <span>Voice Vip</span></span>
         </div>
-        <div class="nav-links">
+        <div class="nav-links" id="nav-links">
             <a href="#features">Tính năng</a>
             <a href="#voices">Mẫu giọng</a>
             <a href="#pricing">Bảng giá</a>
         </div>
         <div class="nav-actions">
-            <button id="btn-login-trigger" class="btn-secondary" onclick="openStudio()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
+            <div id="user-badge" class="user-badge hidden">
+                <span id="user-name-display"><i class="fa-solid fa-user-check"></i> Tester</span>
+                <span id="user-quota-display" class="quota-badge">0/20</span>
+                <button class="btn-logout-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
+            </div>
+            <button id="btn-login-trigger" class="btn-secondary" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
             <button id="btn-studio-trigger" class="btn-primary" onclick="openStudio()"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Studio</button>
         </div>
     </nav>
 
     <!-- LANDING PAGE SECTION -->
-    <section class="hero-section">
+    <section id="hero-section" class="hero-section">
         <div class="hero-content">
             <span class="badge"><i class="fa-solid fa-sparkles"></i> Công Nghệ Voice AI Cảm Xúc Hàng Đầu 2026</span>
             <h1>Cỗ Máy Siêu Tạo Voice <br><span class="gradient-text">Tự Nhiên Như Người Thật</span></h1>
@@ -51,24 +56,39 @@
             </div>
 
             <div class="hero-btns">
-                <button class="btn-primary btn-large" onclick="openStudio()"><i class="fa-solid fa-play"></i> Dùng Thử Ngay Nào</button>
-                <a href="#demo" class="btn-outline btn-large" onclick="openStudio()"><i class="fa-solid fa-volume-high"></i> Trải Nghiệm Studio</a>
+                <button class="btn-primary btn-large" onclick="openAuthModal()"><i class="fa-solid fa-play"></i> Dùng Thử Ngay Nào</button>
+                <button class="btn-outline btn-large" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống</button>
             </div>
         </div>
     </section>
 
-    <!-- STUDIO DASHBOARD (LOGIN PROTECTED) -->
+    <!-- STUDIO DASHBOARD (FULL APP WHEN LOGGED IN) -->
     <section id="studio-section" class="studio-section hidden">
-        <div class="studio-header">
-            <h2><i class="fa-solid fa-sliders"></i> Bàn Làm Việc HTH Supper Voice Vip Studio</h2>
-            <button class="btn-danger-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
+        <div class="studio-header-bar">
+            <div class="header-left">
+                <h2><i class="fa-solid fa-sliders"></i> HTH SUPPER VOICE VIP STUDIO</h2>
+                <span class="status-tag"><i class="fa-solid fa-circle-check"></i> Sẵn sàng sử dụng</span>
+            </div>
         </div>
 
         <div class="studio-grid">
-            <!-- CỘT TRÁI: NHẬP VĂN BẢN & CHIA ĐOẠN -->
+            <!-- CỘT TRÁI: NHẬP VĂN BẢN & CÁC NÚT BIỂU CẢM (TƯƠNG TỰ TOOL EXE) -->
             <div class="studio-card left-card">
-                <h3><i class="fa-solid fa-pen-to-square"></i> Văn Bản Cần Đọc</h3>
-                <textarea id="text-input" placeholder="Nhập văn bản kịch bản của bạn tại đây..."></textarea>
+                <h3><i class="fa-solid fa-pen-to-square"></i> Văn Bản Kịch Bản Cần Tạo Voice</h3>
+                
+                <!-- THANH NÚT CHÈN BIỂU CẢM GIỐNG TOOL EXE -->
+                <div class="express-tags-bar">
+                    <span class="tags-label">Chèn biểu cảm nhanh:</span>
+                    <button class="tag-btn" onclick="insertEmotionTag('[laughter]')">Cười 😊</button>
+                    <button class="tag-btn" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
+                    <button class="tag-btn" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
+                    <button class="tag-btn" onclick="insertEmotionTag('[surprise-oh]')">Ồ! 😲</button>
+                    <button class="tag-btn" onclick="insertEmotionTag('[question-en]')">Hỏi ❓</button>
+                    <button class="tag-btn" onclick="insertEmotionTag('[dissatisfaction-hnn]')">Bất bình 😠</button>
+                    <button class="tag-btn" onclick="insertEmotionTag('[nhấn giọng]')">Nhấn giọng 💥</button>
+                </div>
+
+                <textarea id="text-input" placeholder="Nhập kịch bản văn bản của bạn tại đây hoặc dán nội dung vào đây..."></textarea>
                 
                 <div class="action-bar">
                     <button class="btn-secondary" onclick="autoExpress()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Biểu Cảm (AI)</button>
@@ -76,16 +96,16 @@
                 </div>
 
                 <div class="chunks-list-container">
-                    <h4>Danh sách đoạn văn bản:</h4>
+                    <h4>Danh sách đoạn văn bản sau khi chia:</h4>
                     <div id="chunks-list" class="chunks-list">
-                        <p class="placeholder-text">Chưa chia đoạn văn bản.</p>
+                        <p class="placeholder-text">Chưa có đoạn văn bản nào. Vui lòng bấm "Chia Đoạn Văn Bản".</p>
                     </div>
                 </div>
             </div>
 
-            <!-- CỘT PHẢI: CHỌN GIỌNG & CẤU HÌNH ENGINE -->
+            <!-- CỘT PHẢI: BỘ LỌC ĐA ĐIỀU KIỆN & CẤU HÌNH ENGINE -->
             <div class="studio-card right-card">
-                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc</h3>
+                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc & Engine</h3>
                 
                 <!-- BỘ LỌC MULTI-FILTER -->
                 <div class="filter-group">
@@ -100,15 +120,15 @@
                     </select>
                 </div>
 
-                <!-- TÌM KIẾM VOICE ID -->
+                <!-- TÌM KIẾM VOICE ID CỰC NHANH -->
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="input-voice-id" placeholder="Nhập mã Voice ID để chọn giọng nhanh..." oninput="searchVoiceId()">
+                    <input type="text" id="input-voice-id" placeholder="🔍 Nhập mã Voice ID để chọn giọng nhanh..." oninput="searchVoiceId()">
                 </div>
 
                 <!-- COMBOBOX CHỌN GIỌNG -->
                 <div class="form-group">
-                    <label for="select-voice">Chọn Giọng Đọc Mẫu:</label>
+                    <label for="select-voice">Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</label>
                     <select id="select-voice" onchange="onVoiceSelected()">
                         <option>-- Đang nạp danh sách giọng VIP --</option>
                     </select>
@@ -126,7 +146,7 @@
                 <button id="btn-generate-all" class="btn-accent btn-block" onclick="generateAudio()"><i class="fa-solid fa-cloud-arrow-up"></i> SIÊU TẠO ÂM THANH HOÀN CHỈNH</button>
 
                 <div id="audio-result-card" class="result-card hidden">
-                    <p><i class="fa-solid fa-circle-check"></i> Siêu tạo âm thanh thành công!</p>
+                    <p class="success-msg"><i class="fa-solid fa-circle-check"></i> Siêu tạo âm thanh thành công!</p>
                     <audio id="audio-player" controls></audio>
                     <a id="download-link" href="#" download class="btn-secondary-block"><i class="fa-solid fa-download"></i> Tải File Âm Thanh (.wav)</a>
                 </div>
@@ -138,13 +158,13 @@
     <div id="auth-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="modal-close" onclick="closeAuthModal()">&times;</button>
-            <h2><i class="fa-solid fa-lock"></i> Đăng Nhập Studio</h2>
-            <p>Vui lòng nhập Tên tài khoản và Mật khẩu do Admin cấp để trải nghiệm hệ thống Voice AI.</p>
+            <h2><i class="fa-solid fa-lock"></i> Đăng Nhập HTH Supper Voice</h2>
+            <p>Nhập Tên tài khoản và Mật khẩu để trải nghiệm đầy đủ tính năng tạo voice.</p>
             <div class="form-group">
-                <input type="text" id="auth-username" placeholder="Nhập Tên tài khoản (Ví dụ: tester)..." />
-                <input type="password" id="auth-password" placeholder="Nhập Mật khẩu (Ví dụ: 123)..." />
+                <input type="text" id="auth-username" placeholder="Nhập Tên tài khoản (Ví dụ: tester)..." onkeyup="if(event.key==='Enter') submitAuth()" />
+                <input type="password" id="auth-password" placeholder="Nhập Mật khẩu (Ví dụ: 123)..." onkeyup="if(event.key==='Enter') submitAuth()" />
             </div>
-            <button class="btn-primary btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> Xác Nhận Đăng Nhập</button>
+            <button class="btn-primary btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> ĐĂNG NHẬP NGAY</button>
         </div>
     </div>
 
