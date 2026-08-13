@@ -1,23 +1,45 @@
-const GITHUB_REPO = "danghai-245/voice_11labs";
-const MODAL_ENDPOINT = "https://modal.com"; // Endpoint Modal.com của bạn
+const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
+// Link trạm trung chuyển Server URL & Quản lý User trên GitHub Gist/Repo
+const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
+
 let allVoiceMetadata = [];
-let isAuth = false;
+let currentUser = null;
+let modalGpuUrl = "https://modal.com";
+let usersDatabase = {
+    "USERS": {
+        "admin": { "password": "123", "quota": 999999, "used": 0, "role": "Admin VIP" },
+        "test": { "password": "123", "quota": 10, "used": 0, "role": "Dùng thử" }
+    }
+};
 
 document.addEventListener("DOMContentLoaded", () => {
+    loadServerConfig();
     loadGitHubVoices();
 });
+
+// Nạp cấu hình Link GPU & Danh sách Tài khoản/Hạn mức từ GitHub
+async function loadServerConfig() {
+    try {
+        const resp = await fetch(GITHUB_CONFIG_URL + "?t=" + Date.now());
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.gpu_url) modalGpuUrl = data.gpu_url;
+            if (data.users) usersDatabase.USERS = data.users;
+            console.log("Đã nạp Link GPU từ GitHub:", modalGpuUrl);
+        }
+    } catch (e) {
+        console.log("Dùng config mặc định local");
+    }
+}
 
 // Nạp danh sách giọng đọc từ GitHub Repo
 async function loadGitHubVoices() {
     try {
-        const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/`);
+        const resp = await fetch(`https://api.github.com/repos/${GITHUB_VOICE_REPO}/contents/`);
         if (!resp.ok) return;
         const files = await resp.json();
         
         allVoiceMetadata = [];
-        const combo = document.getElementById("select-voice");
-        combo.innerHTML = "";
-
         files.forEach(file => {
             if (file.name.match(/\.(mp3|wav|m4a|flac)$/i)) {
                 const meta = parseVoiceInfo(file.name, file.download_url);
@@ -91,9 +113,9 @@ function searchVoiceId() {
     }
 }
 
-// BẢO MẬT VÀ ĐĂNG NHẬP
+// BẢO MẬT & QUẢN LÝ TÀI KHOẢN / HẠN MỨC (QUOTA)
 function openStudio() {
-    if (!isAuth) {
+    if (!currentUser) {
         document.getElementById("auth-modal").classList.remove("hidden");
     } else {
         document.getElementById("studio-section").classList.remove("hidden");
@@ -106,22 +128,43 @@ function closeAuthModal() {
 }
 
 function submitAuth() {
+    const username = document.getElementById("auth-username").value.trim();
     const pass = document.getElementById("auth-password").value.trim();
-    if (pass) {
-        isAuth = true;
+    
+    if (!username || !pass) {
+        alert("Vui lòng nhập đầy đủ Tên tài khoản và Mật khẩu!");
+        return;
+    }
+
+    const userAcc = usersDatabase.USERS[username];
+    if (userAcc && userAcc.password === pass) {
+        currentUser = { username, ...userAcc };
+        alert(`Đăng nhập thành công! Xin chào ${username} (${userAcc.role}). Hạn mức: ${userAcc.used}/${userAcc.quota} lượt.`);
         closeAuthModal();
         openStudio();
     } else {
-        alert("Vui lòng nhập mật khẩu!");
+        alert("Tên tài khoản hoặc mật khẩu không chính xác!");
     }
 }
 
 function logout() {
-    isAuth = false;
+    currentUser = null;
     document.getElementById("studio-section").classList.add("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function generateAudio() {
-    alert("Đang kết nối tới Modal.com Serverless GPU để tạo âm thanh...");
+    if (!currentUser) {
+        alert("Vui lòng đăng nhập trước khi tạo âm thanh!");
+        openStudio();
+        return;
+    }
+
+    if (currentUser.used >= currentUser.quota) {
+        alert(`Tài khoản ${currentUser.username} đã HẾT HẠN MỨC (${currentUser.used}/${currentUser.quota} lượt). Vui lòng liên hệ Admin để gia hạn!`);
+        return;
+    }
+
+    alert(`Đang gửi yêu cầu sinh giọng nói tới Server GPU (${modalGpuUrl})... Lượt tạo còn lại: ${currentUser.quota - currentUser.used - 1}`);
+    currentUser.used += 1;
 }

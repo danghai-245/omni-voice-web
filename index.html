@@ -138,9 +138,10 @@
         <div class="modal-content">
             <button class="modal-close" onclick="closeAuthModal()">&times;</button>
             <h2><i class="fa-solid fa-lock"></i> Đăng Nhập Studio</h2>
-            <p>Vui lòng nhập Mã Quyền Sử Dụng hoặc Mật Khẩu do Admin cấp để trải nghiệm hệ thống Voice AI.</p>
+            <p>Vui lòng nhập Tên tài khoản và Mật khẩu do Admin cấp để trải nghiệm hệ thống Voice AI.</p>
             <div class="form-group">
-                <input type="password" id="auth-password" placeholder="Nhập Mật Khẩu / License Key..." />
+                <input type="text" id="auth-username" placeholder="Nhập Tên tài khoản (Ví dụ: tester)..." />
+                <input type="password" id="auth-password" placeholder="Nhập Mật khẩu (Ví dụ: 123)..." />
             </div>
             <button class="btn-primary btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> Xác Nhận Đăng Nhập</button>
         </div>
