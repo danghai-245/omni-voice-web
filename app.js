@@ -50,7 +50,7 @@ function onAiEngineChange() {
     if (emotionContainer) {
         if (isVieneu) {
             emotionContainer.innerHTML = `
-                <span class="tag-title">Chèn biểu cảm VieNeu:</span>
+                <span class="tag-title">Chèn biểu cảm VieNeu (VIP 2):</span>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[cười]')">Cười 😊</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[thở dài]')">Thở dài 😮‍💨</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[hắng giọng]')">Hắng giọng 🗣️</button>
@@ -61,7 +61,7 @@ function onAiEngineChange() {
             `;
         } else {
             emotionContainer.innerHTML = `
-                <span class="tag-title">Chèn biểu cảm OmniVoice:</span>
+                <span class="tag-title">Chèn biểu cảm OmniVoice (VIP 1):</span>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[laughter]')">Cười 😄</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
@@ -82,7 +82,7 @@ function onAiEngineChange() {
         }
     });
 
-    const engineNameStr = isVieneu ? "VieNeu-TTS v3 Turbo (48kHz Tiếng Việt Cảm xúc)" : "OmniVoice v0.2.1 (Multi-lingual)";
+    const engineNameStr = isVieneu ? "VIP 2 - Chuyên tiếng việt" : "VIP 1 - Đa ngôn ngữ";
     addAppLog(`Đã chuyển đổi sang AI Engine: ${engineNameStr}`);
 }
 

@@ -189,15 +189,15 @@
                     </select>
                 </div>
 
-                <!-- BẢNG TINH CHỈNH PHÁT ÂM & ĐẶC TÍNH GIỌNG (CHỦẨN TOOL EXE DÙNG ĐÚNG 2 AI ENGINE) -->
+                <!-- BẢNG TINH CHỈNH PHÁT ÂM & ĐẶC TÍNH GIỌNG -->
                 <div class="card-box audio-params-card">
                     <h4><i class="fa-solid fa-sliders"></i> Tinh chỉnh phát âm & Đặc tính giọng</h4>
                     
                     <div class="form-group-inline">
                         <label for="select-ai-engine" style="color: #00E676; font-weight: 700;">🚀 AI Engine:</label>
                         <select id="select-ai-engine" onchange="onAiEngineChange()" style="border-color: #00E676; font-weight: 700;">
-                            <option value="omni" selected>OmniVoice v0.2.1 (Multi-lingual)</option>
-                            <option value="vieneu">VieNeu-TTS v3 Turbo (48kHz Tiếng Việt Cảm xúc)</option>
+                            <option value="omni" selected>VIP 1 - Đa ngôn ngữ</option>
+                            <option value="vieneu">VIP 2 - Chuyên tiếng việt</option>
                         </select>
                     </div>
 
@@ -237,8 +237,13 @@
                             <label for="select-threads">Số lượng tạo (Threads):</label>
                             <select id="select-threads">
                                 <option value="1">1 Thread</option>
-                                <option value="2">2 Threads (Song song)</option>
-                                <option value="4">4 Threads (Tốc độ cao)</option>
+                                <option value="2">2 Threads</option>
+                                <option value="3">3 Threads</option>
+                                <option value="4" selected>4 Threads</option>
+                                <option value="5">5 Threads</option>
+                                <option value="6">6 Threads</option>
+                                <option value="7">7 Threads</option>
+                                <option value="8">8 Threads (Max Tốc độ)</option>
                             </select>
                         </div>
                     </div>
@@ -325,7 +330,7 @@
                         <label for="input-silence-pause">Khoảng lặng giữa các đoạn (giây):</label>
                         <input type="number" id="input-silence-pause" value="0.2" step="0.1" min="0.0" max="5.0">
                     </div>
-                    <button class="btn-merge-all" onclick="mergeAllAudioChunks()"><i class="fa-solid fa-layer-group"></i> GỘP CÁC ĐOẠN & DỌN DEEP FILE TẠM</button>
+                    <button class="btn-merge-all" onclick="mergeAllAudioChunks()"><i class="fa-solid fa-layer-group"></i> GỘP CÁC ĐOẠN & DỌN DẸP FILE TẠM</button>
                 </div>
 
                 <div id="audio-result-card" class="result-card hidden">
