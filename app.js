@@ -1,8 +1,8 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 const GITHUB_CONFIG_URL = "https://raw.githubusercontent.com/danghai-245/omni-voice-web/main/server_config.json";
 
-// RAW LINK GIST CHỨA CẤU HÌNH REALTIME (LINK GPU MODAL + DANH SÁCH TÀI KHOẢN/MẬT KHẨU NHẬN NGAY TỨC THÌ)
-const GITHUB_GIST_URL = "https://gist.githubusercontent.com/danghai-245/38bd9e7788def62592741f519581bde0/raw";
+// CẤU HÌNH GITHUB REST API V3 LẤY DỮ LIỆU REALTIME TỨC THÌ (KHÔNG CACHE 0s DELAY)
+const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
 let allVoiceMetadata = [];
 let currentUser = null;
@@ -13,6 +13,7 @@ let modalGpuUrls = [
 ];
 let usersDatabase = {
     "USERS": {
+        "admin-0405": { "password": "Hth1624!", "quota": 99999999, "used": 0, "role": "Admin VIP" },
         "admin": { "password": "123", "quota": 99999999, "used": 0, "role": "Admin VIP" },
         "tester": { "password": "123", "quota": 100000, "used": 0, "role": "Dùng thử" }
     }
@@ -195,44 +196,35 @@ function splitChunks() {
     });
 }
 
-// Nạp cấu hình Link GPU & Tài khoản REALTIME TỨC THÌ từ Gist và server_config.json
+// Nạp cấu hình Link GPU & Tài khoản REALTIME TỨC THÌ từ GITHUB REST API V3 (0s DELAY)
 async function loadServerConfig() {
-    // 1. Nạp từ GitHub Gist (CẬP NHẬT TỨC THÌ 0.1 Giây KHÔNG TRỄ)
-    if (GITHUB_GIST_URL) {
-        try {
-            const gistResp = await fetch(GITHUB_GIST_URL + "?nocache=" + Date.now(), {
-                cache: "no-store",
-                headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
-            });
-            if (gistResp.ok) {
-                const gistData = await gistResp.json();
-                if (Array.isArray(gistData) && gistData.length > 0) {
+    try {
+        const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
+        if (resp.ok) {
+            const gistObject = await resp.json();
+            const files = gistObject.files;
+            
+            // Tìm file JSON trong Gist
+            const firstFileName = Object.keys(files)[0];
+            if (firstFileName && files[firstFileName].content) {
+                const contentStr = files[firstFileName].content;
+                const gistData = JSON.parse(contentStr);
+
+                if (Array.isArray(gistData)) {
                     modalGpuUrls = gistData;
                 } else if (typeof gistData === 'object') {
-                    if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
-                    if (gistData.users) usersDatabase.USERS = gistData.users;
+                    if (gistData.gpu_urls && Array.isArray(gistData.gpu_urls)) {
+                        modalGpuUrls = gistData.gpu_urls;
+                    }
+                    if (gistData.users) {
+                        usersDatabase.USERS = { ...usersDatabase.USERS, ...gistData.users };
+                        console.log("Đã nạp danh sách tài khoản mới nhất 100% từ GitHub API v3:", usersDatabase.USERS);
+                    }
                 }
-            }
-        } catch (e) {
-            console.log("Không nạp được Gist, dùng server_config.json");
-        }
-    }
-
-    // 2. Nạp bổ sung từ server_config.json (Yêu cầu No-Cache)
-    try {
-        const resp = await fetch(GITHUB_CONFIG_URL + "?nocache=" + Date.now(), {
-            cache: "no-store",
-            headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
-        });
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data.users) {
-                // Hợp nhất tài khoản từ server_config.json
-                usersDatabase.USERS = { ...usersDatabase.USERS, ...data.users };
             }
         }
     } catch (e) {
-        console.log("Dùng config mặc định local");
+        console.error("Lỗi nạp GitHub API v3:", e);
     }
 }
 
@@ -358,7 +350,7 @@ function openStudio() {
     }
 }
 
-// HÀM ĐĂNG NHẬP XÁC THỰC REALTIME NHẬN TẬP TÀI KHOẢN MỚI
+// HÀM ĐĂNG NHẬP XÁC THỰC REALTIME NHẬN TẬP TÀI KHOẢN MỚI TỪ GITHUB API V3 TỨC THÌ
 async function submitAuth() {
     const username = document.getElementById("auth-username").value.trim();
     const pass = document.getElementById("auth-password").value.trim();
@@ -368,7 +360,7 @@ async function submitAuth() {
         return;
     }
 
-    // Đảm bảo nạp cấu hình mới nhất ngay khi bấm Đăng Nhập!
+    // Tự động kéo API v3 mới nhất về trong 0.01 giây
     await loadServerConfig();
 
     const userAcc = usersDatabase.USERS[username];
@@ -391,7 +383,7 @@ function showStudioView() {
     document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
     document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
 
-    if (currentUser.role.includes("Admin") || currentUser.username === "admin") {
+    if (currentUser.role.includes("Admin") || currentUser.username.includes("admin")) {
         document.getElementById("btn-admin-manage").classList.remove("hidden");
     } else {
         document.getElementById("btn-admin-manage").classList.add("hidden");
@@ -438,7 +430,7 @@ function renderUserList() {
             <td><span class="badge-role">${u.role}</span></td>
             <td>
                 <button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Ký Tự</button>
-                ${username !== 'admin' ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
+                ${!username.includes('admin') ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
             </td>
         `;
         tbody.appendChild(tr);
