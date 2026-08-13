@@ -307,3 +307,17 @@ select, input {
     background: none; border: none;
     color: white; font-size: 1.5rem; cursor: pointer;
 }
+
+.chunk-item {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 6px;
+    font-size: 0.88rem;
+}
+
+/* KHÓA HIDDEN Ở ĐÁY FILE CSS ĐỂ ƯU TIÊN CAO NHẤT */
+.hidden, .modal-overlay.hidden {
+    display: none !important;
+}
