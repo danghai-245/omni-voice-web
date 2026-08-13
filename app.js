@@ -12,6 +12,15 @@ let usersDatabase = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Khởi tạo ban đầu: Hiện trang giới thiệu, ẩn hoàn toàn Studio
+    document.getElementById("hero-section").classList.remove("hidden");
+    document.getElementById("nav-links").classList.remove("hidden");
+    document.getElementById("btn-login-trigger").classList.remove("hidden");
+    document.getElementById("btn-studio-trigger").classList.remove("hidden");
+
+    document.getElementById("studio-section").classList.add("hidden");
+    document.getElementById("user-badge").classList.add("hidden");
+
     loadServerConfig();
     loadGitHubVoices();
 });
@@ -127,7 +136,9 @@ function insertEmotionTag(tag) {
 // BẢO MẬT & ĐĂNG NHẬP / CHUYỂN TRANG CÔNG CỤ ĐỘC LẬP
 function openAuthModal() {
     document.getElementById("auth-modal").classList.remove("hidden");
-    document.getElementById("auth-username").focus();
+    setTimeout(() => {
+        document.getElementById("auth-username").focus();
+    }, 100);
 }
 
 function closeAuthModal() {
@@ -162,13 +173,13 @@ function submitAuth() {
 }
 
 function showStudioView() {
-    // Ẩn trang giới thiệu & Menu giới thiệu
+    // Ẩn hoàn toàn Trang giới thiệu & Menu giới thiệu
     document.getElementById("hero-section").classList.add("hidden");
     document.getElementById("nav-links").classList.add("hidden");
     document.getElementById("btn-login-trigger").classList.add("hidden");
     document.getElementById("btn-studio-trigger").classList.add("hidden");
 
-    // Hiển thị User Badge ở Navbar & Trang Studio
+    // Hiển thị User Badge ở Navbar & Trang Studio công cụ
     document.getElementById("user-badge").classList.remove("hidden");
     document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
     document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
