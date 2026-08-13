@@ -1,8 +1,8 @@
 {
   "gpu_url": "https://modal.com",
   "users": {
-    "admin": {
-      "password": "123",
+    "admin-0405": {
+      "password": "Hth1624!",
       "quota": 999999,
       "used": 0,
       "role": "Admin VIP"
