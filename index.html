@@ -73,7 +73,7 @@
         </div>
 
         <div class="studio-grid">
-            <!-- CỘT TRÁI: API GOOGLE, KỊCH BẢN, BIỂU CẢM & LỰA CHỌN CHIA ĐOẠN -->
+            <!-- CỘT TRÁI: API GOOGLE, KỊCH BẢN, BIỂU CẢM & CHIA ĐOẠN CHUẨN TOOL EXE -->
             <div class="studio-card left-card">
                 <!-- CẤU HÌNH API GOOGLE GEMINI ĐƯỢC CHUYỂN LÊN ĐẦU CỘT TRÁI -->
                 <div class="form-group api-key-group top-api-group">
@@ -100,16 +100,17 @@
 
                 <textarea id="text-input" placeholder="Nhập kịch bản văn bản của bạn tại đây hoặc dán nội dung vào đây..."></textarea>
                 
-                <!-- CÁC LỰA CHỌN CHIA ĐOẠN VĂN BẢN -->
+                <!-- CÁC LỰA CHỌN CHIA ĐOẠN VĂN BẢN CHUẨN TOOL EXE -->
                 <div class="split-controls-group">
                     <div class="split-select-wrap">
-                        <label for="select-chunk-mode"><i class="fa-solid fa-scissors"></i> Chế độ chia đoạn:</label>
+                        <label for="select-chunk-mode"><i class="fa-solid fa-scissors"></i> Chế độ chia đoạn (Chuẩn Tool EXE):</label>
                         <select id="select-chunk-mode">
-                            <option value="auto">Theo dấu câu (.!?)</option>
-                            <option value="200">Tối đa 200 ký tự/đoạn</option>
-                            <option value="300" selected>Tối đa 300 ký tự/đoạn</option>
-                            <option value="500">Tối đa 500 ký tự/đoạn</option>
-                            <option value="800">Tối đa 800 ký tự/đoạn</option>
+                            <option value="line">Theo dòng (Mỗi dòng 1 đoạn)</option>
+                            <option value="sentence">Theo câu (.!? và xuống dòng)</option>
+                            <option value="200">Lùi tìm dấu câu - Tối đa 200 ký tự</option>
+                            <option value="300" selected>Lùi tìm dấu câu - Tối đa 300 ký tự (VIP)</option>
+                            <option value="500">Lùi tìm dấu câu - Tối đa 500 ký tự</option>
+                            <option value="800">Lùi tìm dấu câu - Tối đa 800 ký tự</option>
                         </select>
                     </div>
                 </div>

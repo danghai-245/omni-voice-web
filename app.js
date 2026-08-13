@@ -95,6 +95,92 @@ async function autoExpress() {
     }
 }
 
+// THUẬT TOÁN CHIA ĐOẠN VĂN BẢN ĐỈNH CAO CHUẨN 100% TOOL EXE (LAUNCHER.PY)
+function splitChunks() {
+    const text = document.getElementById("text-input").value.trim();
+    const mode = document.getElementById("select-chunk-mode").value;
+
+    if (!text) {
+        alert("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!");
+        return;
+    }
+
+    let chunks = [];
+
+    if (mode === "line") {
+        chunks = text.split("\n").map(s => s.trim()).filter(s => s);
+    } else if (mode === "sentence") {
+        chunks = text.split(/(?<=[.!?。！？])\s+|\n/).map(s => s.trim()).filter(s => s);
+    } else {
+        // Thuật toán Lùi Tìm Dấu Câu Thông Minh (Smart Punctuation Backtrack Algorithm) của Tool EXE
+        const maxChars = parseInt(mode) || 300;
+        let start = 0;
+        const length = text.length;
+        const punctuation = new Set(['.', '?', '!', '\n', ';', '。', '！', '？']);
+        const subPunctuation = new Set([',', ':', '-']);
+
+        while (start < length) {
+            if (start + maxChars >= length) {
+                const chunk = text.substring(start).trim();
+                if (chunk) chunks.push(chunk);
+                break;
+            }
+
+            const end = start + maxChars;
+            let foundIdx = -1;
+            // Giới hạn lùi tối đa 35% độ dài (giữ tối thiểu 65% maxChars) để không cắt câu quá ngắn
+            const minBack = Math.floor(start + maxChars * 0.65);
+
+            // 1. Ưu tiên 1: Tìm dấu câu chính (. ? ! \n ;)
+            for (let i = end; i >= minBack; i--) {
+                if (punctuation.has(text[i])) {
+                    foundIdx = i + 1;
+                    break;
+                }
+            }
+
+            // 2. Ưu tiên 2: Tìm dấu câu phụ (, : -)
+            if (foundIdx === -1) {
+                for (let i = end; i >= minBack; i--) {
+                    if (subPunctuation.has(text[i])) {
+                        foundIdx = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Ưu tiên 3: Tìm khoảng trắng
+            if (foundIdx === -1) {
+                for (let i = end; i >= minBack; i--) {
+                    if (text[i] === ' ' || text[i] === '\t') {
+                        foundIdx = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // 4. Ưu tiên 4: Cắt cứng nếu không tìm thấy vị trí thích hợp
+            if (foundIdx === -1) {
+                foundIdx = end;
+            }
+
+            const chunk = text.substring(start, foundIdx).trim();
+            if (chunk) chunks.push(chunk);
+            start = foundIdx;
+        }
+    }
+
+    const chunksList = document.getElementById("chunks-list");
+    chunksList.innerHTML = "";
+
+    chunks.forEach((chunk, idx) => {
+        const div = document.createElement("div");
+        div.className = "chunk-item";
+        div.innerHTML = `<strong>Đoạn ${idx + 1} (${chunk.length} ký tự):</strong> ${chunk}`;
+        chunksList.appendChild(div);
+    });
+}
+
 // Nạp cấu hình Link GPU & Danh sách Tài khoản/Hạn mức từ GitHub
 async function loadServerConfig() {
     try {
@@ -365,48 +451,4 @@ function generateAudio() {
     alert(`Đang kết nối Cỗ Máy Siêu Tạo Voice để sinh giọng nói... Lượt tạo còn lại: ${currentUser.quota - currentUser.used - 1}`);
     currentUser.used += 1;
     document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
-}
-
-// XỬ LÝ CHIA ĐOẠN THEO CẤU HÌNH KÝ TỰ CHỌN
-function splitChunks() {
-    const text = document.getElementById("text-input").value.trim();
-    const mode = document.getElementById("select-chunk-mode").value;
-
-    if (!text) {
-        alert("Vui lòng nhập văn bản kịch bản trước khi chia đoạn!");
-        return;
-    }
-
-    let chunks = [];
-
-    if (mode === "auto") {
-        chunks = text.split(/(?<=[.!?\n])\s+/).filter(s => s.trim());
-    } else {
-        const maxLen = parseInt(mode);
-        let remaining = text;
-
-        while (remaining.length > 0) {
-            if (remaining.length <= maxLen) {
-                chunks.push(remaining.trim());
-                break;
-            }
-
-            // Tìm vị trí cắt thích hợp theo khoảng trắng hoặc dấu câu gần nhất
-            let cutPos = remaining.lastIndexOf(" ", maxLen);
-            if (cutPos <= 0) cutPos = maxLen;
-
-            chunks.push(remaining.substring(0, cutPos).trim());
-            remaining = remaining.substring(cutPos).trim();
-        }
-    }
-
-    const chunksList = document.getElementById("chunks-list");
-    chunksList.innerHTML = "";
-
-    chunks.forEach((chunk, idx) => {
-        const div = document.createElement("div");
-        div.className = "chunk-item";
-        div.innerHTML = `<strong>Đoạn ${idx + 1} (${chunk.length} ký tự):</strong> ${chunk}`;
-        chunksList.appendChild(div);
-    });
 }
