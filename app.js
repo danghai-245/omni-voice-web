@@ -6,8 +6,8 @@ let currentUser = null;
 let modalGpuUrl = "https://modal.com";
 let usersDatabase = {
     "USERS": {
-        "admin": { "password": "123", "quota": 999999, "used": 0, "role": "Admin VIP" },
-        "tester": { "password": "123", "quota": 20, "used": 0, "role": "Dùng thử" }
+        "admin": { "password": "123", "quota": 99999999, "used": 0, "role": "Admin VIP" },
+        "tester": { "password": "123", "quota": 100000, "used": 0, "role": "Dùng thử" }
     }
 };
 
@@ -25,6 +25,14 @@ document.addEventListener("DOMContentLoaded", () => {
     loadServerConfig();
     loadGitHubVoices();
 });
+
+function updateCharCount() {
+    const text = document.getElementById("text-input").value;
+    const charCountEl = document.getElementById("text-char-count");
+    if (charCountEl) {
+        charCountEl.innerHTML = `<i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>${text.length.toLocaleString('vi-VN')}</strong> ký tự`;
+    }
+}
 
 // QUẢN LÝ CẤU HÌNH GOOGLE GEMINI API KEY
 function loadSavedGeminiKey() {
@@ -85,6 +93,7 @@ async function autoExpress() {
             const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (resultText) {
                 txtArea.value = resultText.trim();
+                updateCharCount();
                 alert("Đã chèn biểu cảm AI thành công!");
             }
         } else {
@@ -112,7 +121,6 @@ function splitChunks() {
     } else if (mode === "sentence") {
         chunks = text.split(/(?<=[.!?。！？])\s+|\n/).map(s => s.trim()).filter(s => s);
     } else {
-        // Thuật toán Lùi Tìm Dấu Câu Thông Minh (Smart Punctuation Backtrack Algorithm) của Tool EXE
         const maxChars = parseInt(mode) || 300;
         let start = 0;
         const length = text.length;
@@ -128,10 +136,8 @@ function splitChunks() {
 
             const end = start + maxChars;
             let foundIdx = -1;
-            // Giới hạn lùi tối đa 35% độ dài (giữ tối thiểu 65% maxChars) để không cắt câu quá ngắn
             const minBack = Math.floor(start + maxChars * 0.65);
 
-            // 1. Ưu tiên 1: Tìm dấu câu chính (. ? ! \n ;)
             for (let i = end; i >= minBack; i--) {
                 if (punctuation.has(text[i])) {
                     foundIdx = i + 1;
@@ -139,7 +145,6 @@ function splitChunks() {
                 }
             }
 
-            // 2. Ưu tiên 2: Tìm dấu câu phụ (, : -)
             if (foundIdx === -1) {
                 for (let i = end; i >= minBack; i--) {
                     if (subPunctuation.has(text[i])) {
@@ -149,7 +154,6 @@ function splitChunks() {
                 }
             }
 
-            // 3. Ưu tiên 3: Tìm khoảng trắng
             if (foundIdx === -1) {
                 for (let i = end; i >= minBack; i--) {
                     if (text[i] === ' ' || text[i] === '\t') {
@@ -159,7 +163,6 @@ function splitChunks() {
                 }
             }
 
-            // 4. Ưu tiên 4: Cắt cứng nếu không tìm thấy vị trí thích hợp
             if (foundIdx === -1) {
                 foundIdx = end;
             }
@@ -287,6 +290,7 @@ function insertEmotionTag(tag) {
     txtArea.focus();
     txtArea.selectionStart = startPos + tag.length + 2;
     txtArea.selectionEnd = startPos + tag.length + 2;
+    updateCharCount();
 }
 
 // BẢO MẬT & ĐĂNG NHẬP / CHUYỂN TRANG CÔNG CỤ ĐỘC LẬP
@@ -336,9 +340,8 @@ function showStudioView() {
 
     document.getElementById("user-badge").classList.remove("hidden");
     document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
-    document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
+    document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
 
-    // HIỂN THỊ NÚT QUẢN LÝ ADMIN NẾU LÀ ADMIN VIP
     if (currentUser.role.includes("Admin") || currentUser.username === "admin") {
         document.getElementById("btn-admin-manage").classList.remove("hidden");
     } else {
@@ -382,10 +385,10 @@ function renderUserList() {
         tr.innerHTML = `
             <td><strong>${username}</strong></td>
             <td><code>${u.password}</code></td>
-            <td>${u.used}/${u.quota} lượt</td>
+            <td>${u.used.toLocaleString('vi-VN')} / ${u.quota.toLocaleString('vi-VN')} ký tự</td>
             <td><span class="badge-role">${u.role}</span></td>
             <td>
-                <button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Hạn Mức</button>
+                <button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Ký Tự</button>
                 ${username !== 'admin' ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
             </td>
         `;
@@ -396,7 +399,7 @@ function renderUserList() {
 function addNewUser() {
     const name = document.getElementById("new-user-name").value.trim();
     const pass = document.getElementById("new-user-pass").value.trim();
-    const quota = parseInt(document.getElementById("new-user-quota").value.trim()) || 50;
+    const quota = parseInt(document.getElementById("new-user-quota").value.trim()) || 100000;
     const role = document.getElementById("new-user-role").value.trim() || "Khách VIP";
 
     if (!name || !pass) {
@@ -405,7 +408,7 @@ function addNewUser() {
     }
 
     usersDatabase.USERS[name] = { password: pass, quota: quota, used: 0, role: role };
-    alert(`Đã thêm thành công tài khoản: ${name} (Mật khẩu: ${pass}, Hạn mức: ${quota} lượt)`);
+    alert(`Đã thêm thành công tài khoản: ${name} (Mật khẩu: ${pass}, Hạn mức: ${quota.toLocaleString('vi-VN')} ký tự)`);
     
     document.getElementById("new-user-name").value = "";
     document.getElementById("new-user-pass").value = "";
@@ -414,16 +417,16 @@ function addNewUser() {
 
 function editUserQuota(username) {
     const currentAcc = usersDatabase.USERS[username];
-    const newQuotaStr = prompt(`Nhập Hạn Mức (Quota) MỚI cho tài khoản ${username}:`, currentAcc.quota);
+    const newQuotaStr = prompt(`Nhập Hạn Mức KÝ TỰ MỚI cho tài khoản ${username}:`, currentAcc.quota);
     if (newQuotaStr !== null) {
         const newQuota = parseInt(newQuotaStr);
         if (!isNaN(newQuota)) {
             currentAcc.quota = newQuota;
-            alert(`Đã cập nhật hạn mức mới cho ${username} thành ${newQuota} lượt!`);
+            alert(`Đã cập nhật hạn mức ký tự mới cho ${username} thành ${newQuota.toLocaleString('vi-VN')} ký tự!`);
             renderUserList();
             if (currentUser && currentUser.username === username) {
                 currentUser.quota = newQuota;
-                document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
+                document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
             }
         }
     }
@@ -436,6 +439,7 @@ function deleteUser(username) {
     }
 }
 
+// TẠO ÂM THANH KÈM KIỂM TRA HẠN MỨC THEO SỐ KÝ TỰ (CHARACTER COUNT QUOTA)
 function generateAudio() {
     if (!currentUser) {
         alert("Vui lòng đăng nhập trước khi tạo âm thanh!");
@@ -443,12 +447,26 @@ function generateAudio() {
         return;
     }
 
-    if (currentUser.used >= currentUser.quota) {
-        alert(`Tài khoản ${currentUser.username} đã HẾT HẠN MỨC (${currentUser.used}/${currentUser.quota} lượt). Vui lòng liên hệ Admin để gia hạn!`);
+    const text = document.getElementById("text-input").value.trim();
+    if (!text) {
+        alert("Vui lòng nhập văn bản kịch bản trước khi tạo âm thanh!");
         return;
     }
 
-    alert(`Đang kết nối Cỗ Máy Siêu Tạo Voice để sinh giọng nói... Lượt tạo còn lại: ${currentUser.quota - currentUser.used - 1}`);
-    currentUser.used += 1;
-    document.getElementById("user-quota-display").innerText = `${currentUser.used}/${currentUser.quota}`;
+    const charCount = text.length;
+
+    if (currentUser.used + charCount > currentUser.quota) {
+        alert(`Tài khoản ${currentUser.username} HẾT HẠN MỨC KÝ TỰ!\nĐã dùng: ${currentUser.used.toLocaleString('vi-VN')} / Tổng Quota: ${currentUser.quota.toLocaleString('vi-VN')} ký tự.\nĐoạn kịch bản này dài ${charCount.toLocaleString('vi-VN')} ký tự. Vui lòng liên hệ Admin để gia hạn thêm!`);
+        return;
+    }
+
+    const speed = document.getElementById("range-speed").value;
+    const emotion = document.getElementById("range-emotion").value;
+    const targetLang = document.getElementById("select-target-lang").value;
+    const denoise = document.getElementById("check-denoise").checked ? "Có" : "Không";
+
+    alert(`Đang kết nối Cỗ Máy Siêu Tạo Voice...\n• Số ký tự: ${charCount.toLocaleString('vi-VN')} ký tự\n• Ngôn ngữ: ${targetLang}\n• Tốc độ: ${speed}x | Cảm xúc: ${emotion}\n• Khử nhiễu AI: ${denoise}\n• Ký tự còn lại sau lượt này: ${(currentUser.quota - currentUser.used - charCount).toLocaleString('vi-VN')} ký tự`);
+    
+    currentUser.used += charCount;
+    document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
 }

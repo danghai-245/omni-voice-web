@@ -25,7 +25,7 @@
         <div class="nav-actions">
             <div id="user-badge" class="user-badge hidden">
                 <span id="user-name-display"><i class="fa-solid fa-user-check"></i> Tester</span>
-                <span id="user-quota-display" class="quota-badge">0/20</span>
+                <span id="user-quota-display" class="quota-badge">0 / 100,000 ký tự</span>
                 <button id="btn-admin-manage" class="btn-admin-sm hidden" onclick="openAdminModal()"><i class="fa-solid fa-crown"></i> Quản Lý User</button>
                 <button class="btn-logout-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
             </div>
@@ -73,9 +73,9 @@
         </div>
 
         <div class="studio-grid">
-            <!-- CỘT TRÁI: API GOOGLE, KỊCH BẢN, BIỂU CẢM & CHIA ĐOẠN CHUẨN TOOL EXE -->
+            <!-- CỘT TRÁI: API GOOGLE, KỊCH BẢN, BIỂU CẢM & CHIA ĐOẠN -->
             <div class="studio-card left-card">
-                <!-- CẤU HÌNH API GOOGLE GEMINI ĐƯỢC CHUYỂN LÊN ĐẦU CỘT TRÁI -->
+                <!-- CẤU HÌNH API GOOGLE GEMINI -->
                 <div class="form-group api-key-group top-api-group">
                     <label for="input-gemini-key"><i class="fa-brands fa-google"></i> Google Gemini API Key (Auto Biểu Cảm):</label>
                     <div class="input-with-btn">
@@ -98,8 +98,12 @@
                     <button class="tag-btn" onclick="insertEmotionTag('[nhấn giọng]')">Nhấn giọng 💥</button>
                 </div>
 
-                <textarea id="text-input" placeholder="Nhập kịch bản văn bản của bạn tại đây hoặc dán nội dung vào đây..."></textarea>
+                <textarea id="text-input" placeholder="Nhập kịch bản văn bản của bạn tại đây hoặc dán nội dung vào đây..." oninput="updateCharCount()"></textarea>
                 
+                <div class="text-meta-bar">
+                    <span id="text-char-count"><i class="fa-solid fa-font"></i> Tổng số ký tự: <strong>0</strong> ký tự</span>
+                </div>
+
                 <!-- CÁC LỰA CHỌN CHIA ĐOẠN VĂN BẢN CHUẨN TOOL EXE -->
                 <div class="split-controls-group">
                     <div class="split-select-wrap">
@@ -128,9 +132,9 @@
                 </div>
             </div>
 
-            <!-- CỘT PHẢI: CHỌN GIỌNG & CẤU HÌNH ENGINE -->
+            <!-- CỘT PHẢI: CHỌN GIỌNG, CẤU HÌNH THÔNG SỐ ÂM THANH NÂNG CAO & ENGINE -->
             <div class="studio-card right-card">
-                <h3><i class="fa-solid fa-user-gear"></i> Cấu Hình Giọng Đọc Mẫu & Engine</h3>
+                <h3><i class="fa-solid fa-sliders"></i> Cấu Hình Giọng Đọc & Thông Số Nâng Cao</h3>
                 
                 <!-- BỘ LỌC MULTI-FILTER -->
                 <div class="filter-group">
@@ -157,6 +161,46 @@
                     <select id="select-voice" onchange="onVoiceSelected()">
                         <option>-- Đang nạp danh sách giọng VIP --</option>
                     </select>
+                </div>
+
+                <!-- CẤU HÌNH THÔNG SỐ ÂM THANH NÂNG CAO -->
+                <div class="audio-params-card">
+                    <h4><i class="fa-solid fa-gear"></i> Thông Số Âm Thanh (Chuẩn Tool EXE):</h4>
+                    
+                    <div class="form-group-inline">
+                        <label for="select-target-lang"><i class="fa-solid fa-language"></i> Ngôn ngữ đọc phát âm:</label>
+                        <select id="select-target-lang">
+                            <option value="auto">Tự động phát hiện (Auto)</option>
+                            <option value="vi" selected>Tiếng Việt (Vietnamese)</option>
+                            <option value="en">Tiếng Anh (English)</option>
+                            <option value="zh">Tiếng Trung (Chinese)</option>
+                            <option value="ja">Tiếng Nhật (Japanese)</option>
+                            <option value="ko">Tiếng Hàn (Korean)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group-checkbox">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="check-denoise" checked>
+                            <span><i class="fa-solid fa-wave-square"></i> Bật chế độ Khử Nhiễu Nền AI (Denoise)</span>
+                        </label>
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label for="range-speed"><i class="fa-solid fa-gauge-high"></i> Tốc độ đọc (Speed):</label>
+                            <span id="val-speed" class="slider-val">1.0x</span>
+                        </div>
+                        <input type="range" id="range-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('val-speed').innerText = this.value + 'x'">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label for="range-emotion"><i class="fa-solid fa-heart"></i> Độ truyền cảm / Cảm xúc:</label>
+                            <span id="val-emotion" class="slider-val">0.7</span>
+                        </div>
+                        <input type="range" id="range-emotion" min="0.1" max="1.0" step="0.1" value="0.7" oninput="document.getElementById('val-emotion').innerText = this.value">
+                    </div>
                 </div>
 
                 <!-- AI ENGINE CHOICE -->
@@ -193,12 +237,12 @@
         </div>
     </div>
 
-    <!-- ADMIN USER MANAGER MODAL (QUẢN LÝ TÀI KHOẢN VÀ HẠN MỨC) -->
+    <!-- ADMIN USER MANAGER MODAL (QUẢN LÝ TÀI KHOẢN VÀ HẠN MỨC KÝ TỰ) -->
     <div id="admin-modal" class="modal-overlay hidden">
         <div class="modal-content admin-modal-content">
             <button class="modal-close" onclick="closeAdminModal()">&times;</button>
-            <h2><i class="fa-solid fa-crown"></i> QUẢN LÝ TÀI KHOẢN & HẠN MỨC (ADMIN)</h2>
-            <p>Thêm, sửa Mật khẩu, nâng Hạn mức (Quota) hoặc Xóa tài khoản người dùng trực tiếp.</p>
+            <h2><i class="fa-solid fa-crown"></i> QUẢN LÝ TÀI KHOẢN & HẠN MỨC KÝ TỰ (ADMIN)</h2>
+            <p>Thêm, sửa Mật khẩu, nâng Hạn mức ký tự (Quota Ký Tự) hoặc Xóa tài khoản người dùng trực tiếp.</p>
             
             <!-- FORM THÊM USER MỚI -->
             <div class="add-user-card">
@@ -206,7 +250,7 @@
                 <div class="add-user-inputs">
                     <input type="text" id="new-user-name" placeholder="Tên đăng nhập (username)..." />
                     <input type="text" id="new-user-pass" placeholder="Mật khẩu..." />
-                    <input type="number" id="new-user-quota" placeholder="Hạn mức số lượt..." value="50" />
+                    <input type="number" id="new-user-quota" placeholder="Hạn mức số ký tự..." value="100000" />
                     <input type="text" id="new-user-role" placeholder="Vai trò (Khách VIP)..." value="Khách VIP" />
                     <button class="btn-primary" onclick="addNewUser()"><i class="fa-solid fa-plus"></i> Thêm User</button>
                 </div>
@@ -219,7 +263,7 @@
                         <tr>
                             <th>Tài khoản</th>
                             <th>Mật khẩu</th>
-                            <th>Đã dùng / Hạn mức</th>
+                            <th>Đã dùng / Hạn mức (Ký tự)</th>
                             <th>Vai trò</th>
                             <th>Thao tác</th>
                         </tr>
