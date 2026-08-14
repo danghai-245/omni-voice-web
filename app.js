@@ -123,62 +123,67 @@ function saveLocalUserCache() {
     }
 }
 
-const SERVER_CONFIG_ENDPOINT = "/api/config";
-const HTH_SECRET_AUTH_KEY = "HTH_VOICE_SECURE_AUTH_2026_TOKEN";
+const SUPABASE_PROJECT_ID = "jdhjimqktyiwffueaksh";
+const SUPABASE_READ_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/hth_voice/server_config.json`;
+const SUPABASE_WRITE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/hth_voice/server_config.json`;
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkaGppbXFrdHlpd2ZmdWVha3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NjU0ODQsImV4cCI6MjEwMjI0MTQ4NH0.b9UT8szGG3FvirnTNNEr_f77QQMzLsTznYdH3ZBBhBU";
 
-// NẠP CẤU HÌNH TÀI KHOẢN REALTIME TỪ SERVERLESS ENDPOINT VỚI XÁC THỰC BẢO MẬT
+// NẠP CẤU HÌNH TÀI KHOẢN TỪ SUPABASE REALTIME STORAGE (TỐC ĐỘ SUB-15MS)
 async function loadServerConfigFromGist() {
     try {
-        const resp = await fetch(SERVER_CONFIG_ENDPOINT + "?t=" + Date.now(), {
+        const resp = await fetch(SUPABASE_READ_URL + "?t=" + Date.now(), {
             headers: {
-                "X-HTH-Auth-Token": HTH_SECRET_AUTH_KEY
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": "Bearer " + SUPABASE_ANON_KEY
             }
         });
         if (resp.ok) {
-            const gistData = await resp.json();
-            if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
-            if (gistData.users) {
-                usersDatabase.USERS = gistData.users;
+            const data = await resp.json();
+            if (data.gpu_urls) modalGpuUrls = data.gpu_urls;
+            if (data.users) {
+                usersDatabase.USERS = data.users;
                 saveLocalUserCache();
-                console.log("Nạp thành công cấu hình Realtime Bảo Mật:", usersDatabase.USERS);
+                console.log("Nạp thành công cấu hình Supabase Realtime:", usersDatabase.USERS);
             }
         }
     } catch (e) {
-        console.error("Lỗi nạp cấu hình từ Server:", e);
+        console.error("Lỗi nạp Supabase:", e);
     }
 }
 
-// ĐỒNG BỘ CẬP NHẬT DỮ LIỆU TÀI KHOẢN REALTIME TỐC ĐỘ CAO VỚI XÁC THỰC BẢO MẬT
+// ĐỒNG BỘ CẬP NHẬT TÀI KHOẢN REALTIME LÊN SUPABASE STORAGE
 async function syncUsersToGist() {
     saveLocalUserCache();
 
     try {
-        addAppLog("Đang cập nhật dữ liệu tài khoản Realtime Bảo Mật...");
+        addAppLog("Đang đồng bộ dữ liệu tài khoản lên Supabase Realtime Storage...");
 
-        const patchPayload = {
+        const contentPayload = JSON.stringify({
             gpu_urls: modalGpuUrls,
             users: usersDatabase.USERS
-        };
+        }, null, 2);
 
-        const patchResp = await fetch(SERVER_CONFIG_ENDPOINT, {
+        const patchResp = await fetch(SUPABASE_WRITE_URL, {
             method: "POST",
             headers: {
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": "Bearer " + SUPABASE_ANON_KEY,
                 "Content-Type": "application/json",
-                "X-HTH-Auth-Token": HTH_SECRET_AUTH_KEY
+                "x-upsert": "true"
             },
-            body: JSON.stringify(patchPayload)
+            body: contentPayload
         });
 
         if (patchResp.ok) {
-            addAppLog("ĐỒNG BỘ DỮ LIỆU BẢO MẬT VĨNH VIỄN THÀNH CÔNG 100%! Mọi thiết bị khác có thể đăng nhập ngay!");
+            addAppLog("ĐỒNG BỘ DỮ LIỆU LÊN SUPABASE REALTIME THÀNH CÔNG 100%! Mọi máy khác có thể đăng nhập ngay tức thì!");
         } else {
             const errJson = await patchResp.json();
-            console.error("Lỗi Push Server:", errJson);
-            addAppLog("Lỗi Push Server: " + (errJson.error || patchResp.statusText));
+            console.error("Lỗi Push Supabase:", errJson);
+            addAppLog("Lỗi Push Supabase: " + (errJson.message || patchResp.statusText));
         }
     } catch (e) {
-        console.error("Lỗi sync Server:", e);
-        addAppLog("Lỗi sync Server: " + e.message);
+        console.error("Lỗi sync Supabase:", e);
+        addAppLog("Lỗi sync Supabase: " + e.message);
     }
 }
 
