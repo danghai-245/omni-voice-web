@@ -816,15 +816,6 @@ function closeAuthModal() {
     }
 }
 
-// BỘ GẮN THUỘC TÍNH NGUYÊN THỦY TOÀN CỤC CHỐNG LỖI CALL SCOPE
-window.openAuthModal = openAuthModal;
-window.closeAuthModal = closeAuthModal;
-window.submitAuth = submitAuth;
-window.openStudio = openStudio;
-window.showStudioView = showStudioView;
-window.switchStudioTab = switchStudioTab;
-window.openAdminModal = openAdminModal;
-
 function openStudio() {
     if (!currentUser) {
         openAuthModal();
@@ -1299,3 +1290,14 @@ async function scanModalGpuStatus() {
 async function generateAudio() {
     await generateAllChunks();
 }
+
+// BỘ GẮN THUỘC TÍNH TOÀN CỤC CHỐNG LỖI EXECUTION CONTEXT VỚI ĐẦY ĐỦ CÁC HÀM
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.submitAuth = submitAuth;
+window.openStudio = openStudio;
+window.showStudioView = showStudioView;
+window.switchStudioTab = switchStudioTab;
+window.openAdminModal = openAdminModal;
+window.scanModalGpuStatus = scanModalGpuStatus;
+window.generateAudio = generateAudio;
