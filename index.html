@@ -389,6 +389,23 @@
                 .custom-toast.fade-out { opacity: 0; transform: translateY(-20px) scale(0.95); }
             </style>
 
+            <!-- KHU VỰC QUẢN LÝ LINK GPU SERVERLESS REALTIME PRO -->
+            <div style="background: rgba(0,229,255,0.03); border:1px solid rgba(0,229,255,0.2); border-radius:12px; padding:16px; margin: 16px 0;">
+                <h4 style="color:#00E5FF; font-size:0.95rem; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                    <span><i class="fa-solid fa-server"></i> Quản Lý Link Máy Chủ Serverless GPU (Modal URLs):</span>
+                    <span style="font-size:0.75rem; color:#10B981; font-weight:normal;"><i class="fa-solid fa-bolt"></i> Realtime Supabase</span>
+                </h4>
+                
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <input type="text" id="new-gpu-url" placeholder="Dán link Modal GPU mới (https://...)..." style="flex:1; padding:10px 14px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.3); border-radius:8px; color:#FFF;">
+                    <button class="btn-accent" onclick="addNewGpuUrl()" style="white-space:nowrap; width:auto;"><i class="fa-solid fa-plus"></i> Thêm Link GPU</button>
+                </div>
+
+                <div id="gpu-url-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:160px; overflow-y:auto; padding-right:4px;">
+                    <!-- Danh sách URL GPU render động -->
+                </div>
+            </div>
+
             <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:16px; margin: 16px 0;">
                 <h4 style="color:#10B981; font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới:</h4>
                 <div class="grid-2-col">

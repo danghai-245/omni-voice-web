@@ -814,7 +814,58 @@ function logout() {
 
 function openAdminModal() {
     renderUserList();
+    renderGpuUrlList();
     document.getElementById("admin-modal").classList.remove("hidden");
+}
+
+function renderGpuUrlList() {
+    const container = document.getElementById("gpu-url-list-container");
+    if (!container) return;
+
+    if (!modalGpuUrls || modalGpuUrls.length === 0) {
+        container.innerHTML = `<div style="color: #94A3B8; font-size: 0.85rem; font-style: italic;">Chưa có link GPU nào được thêm.</div>`;
+        return;
+    }
+
+    container.innerHTML = modalGpuUrls.map((url, idx) => `
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 12px; gap: 10px;">
+            <div style="font-size: 0.85rem; color: #E2E8F0; word-break: break-all; font-family: monospace;">
+                <i class="fa-solid fa-microchip" style="color: #A855F7; margin-right: 6px;"></i> ${url}
+            </div>
+            <button onclick="deleteGpuUrl(${idx})" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #EF4444; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.75rem; font-weight: 600; white-space: nowrap;">
+                <i class="fa-solid fa-trash"></i> Xóa
+            </button>
+        </div>
+    `).join("");
+}
+
+async function addNewGpuUrl() {
+    const inputEl = document.getElementById("new-gpu-url");
+    const rawUrl = inputEl ? inputEl.value.trim() : "";
+    
+    if (!rawUrl || !rawUrl.startsWith("http")) {
+        showToast("Link Không Hợp Lệ", "Vui lòng dán đường link GPU hợp lệ (bắt đầu bằng https://)!", "error");
+        return;
+    }
+
+    const cleanUrl = rawUrl.replace(/\/+$/, "");
+    if (!modalGpuUrls.includes(cleanUrl)) {
+        modalGpuUrls.push(cleanUrl);
+    }
+    
+    inputEl.value = "";
+    renderGpuUrlList();
+    await syncUsersToGist();
+    showToast("Thêm GPU Thành Công", "Đã thêm Serverless GPU mới và đồng bộ vĩnh viễn lên Supabase!", "success");
+}
+
+async function deleteGpuUrl(index) {
+    if (index >= 0 && index < modalGpuUrls.length) {
+        const removed = modalGpuUrls.splice(index, 1);
+        renderGpuUrlList();
+        await syncUsersToGist();
+        showToast("Đã Xóa GPU", `Đã xóa link máy chủ GPU khỏi danh sách!`, "warning");
+    }
 }
 
 function closeAdminModal() {
