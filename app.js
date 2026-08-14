@@ -1204,31 +1204,50 @@ let dashCountdown = 30;
 let dashTimerInterval = null;
 
 function switchStudioTab(tabName) {
-    const isAdmin = currentUser && (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin"));
-
-    if (tabName === "dashboard" && !isAdmin) {
-        showToast("Quyền Hạn Hạn Chế", "Tab Giám Sát Realtime GPU chỉ dành riêng cho Tài Khoản Admin VIP!", "warning");
-        return;
-    }
-
     const btnVoice = document.getElementById("tab-btn-studio");
     const btnDash = document.getElementById("tab-btn-modal-dashboard");
     const contentVoice = document.getElementById("tab-content-voice-studio");
     const contentDash = document.getElementById("tab-content-modal-dashboard");
 
     if (tabName === "dashboard") {
-        if (btnVoice) btnVoice.className = "btn-hero-secondary";
-        if (btnDash) btnDash.className = "btn-hero-primary active-tab-btn";
-        if (contentVoice) contentVoice.classList.add("hidden");
-        if (contentDash) contentDash.classList.remove("hidden");
+        if (btnVoice) {
+            btnVoice.classList.remove("active-tab-btn", "btn-hero-primary");
+            btnVoice.classList.add("btn-hero-secondary");
+        }
+        if (btnDash) {
+            btnDash.classList.remove("btn-hero-secondary");
+            btnDash.classList.add("active-tab-btn", "btn-hero-primary");
+        }
+
+        if (contentVoice) {
+            contentVoice.style.display = "none";
+            contentVoice.classList.add("hidden");
+        }
+        if (contentDash) {
+            contentDash.style.display = "block";
+            contentDash.classList.remove("hidden");
+        }
 
         scanModalGpuStatus();
         startDashboardAutoTimer();
     } else {
-        if (btnVoice) btnVoice.className = "btn-hero-primary active-tab-btn";
-        if (btnDash) btnDash.className = "btn-hero-secondary";
-        if (contentVoice) contentVoice.classList.remove("hidden");
-        if (contentDash) contentDash.classList.add("hidden");
+        if (btnVoice) {
+            btnVoice.classList.remove("btn-hero-secondary");
+            btnVoice.classList.add("active-tab-btn", "btn-hero-primary");
+        }
+        if (btnDash) {
+            btnDash.classList.remove("active-tab-btn", "btn-hero-primary");
+            btnDash.classList.add("btn-hero-secondary");
+        }
+
+        if (contentVoice) {
+            contentVoice.style.display = "block";
+            contentVoice.classList.remove("hidden");
+        }
+        if (contentDash) {
+            contentDash.style.display = "none";
+            contentDash.classList.add("hidden");
+        }
 
         if (dashTimerInterval) clearInterval(dashTimerInterval);
     }
