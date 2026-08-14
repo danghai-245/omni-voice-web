@@ -44,6 +44,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("studio-section")?.classList.add("hidden");
     document.getElementById("user-badge")?.classList.add("hidden");
 
+    // Gắn sự kiện click trực tiếp bằng JS cho các nút tab điều hướng
+    const tabBtnDash = document.getElementById("tab-btn-modal-dashboard");
+    if (tabBtnDash) {
+        tabBtnDash.onclick = (e) => {
+            if (e) e.preventDefault();
+            switchStudioTab('dashboard');
+        };
+    }
+
+    const tabBtnVoice = document.getElementById("tab-btn-studio");
+    if (tabBtnVoice) {
+        tabBtnVoice.onclick = (e) => {
+            if (e) e.preventDefault();
+            switchStudioTab('voice');
+        };
+    }
+
     // Gắn sự kiện click trực tiếp bằng JS cho tất cả các nút Đăng nhập chống nghẽn
     const loginBtnTrigger = document.getElementById("btn-login-trigger");
     if (loginBtnTrigger) {
