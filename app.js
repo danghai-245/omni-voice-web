@@ -802,7 +802,7 @@ function openAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
         modal.classList.remove("hidden");
-        modal.style.display = "flex";
+        modal.style.setProperty("display", "flex", "important");
         setTimeout(() => {
             const usernameInput = document.getElementById("auth-username");
             if (usernameInput) usernameInput.focus();
@@ -814,9 +814,18 @@ function closeAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
         modal.classList.add("hidden");
-        modal.style.display = "none";
+        modal.style.setProperty("display", "none", "important");
     }
 }
+
+// BỘ GẮN THUỘC TÍNH NGUYÊN THỦY TOÀN CỤC CHỐNG LỖI CALL SCOPE
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.submitAuth = submitAuth;
+window.openStudio = openStudio;
+window.showStudioView = showStudioView;
+window.switchStudioTab = switchStudioTab;
+window.openAdminModal = openAdminModal;
 
 function openStudio() {
     if (!currentUser) {
