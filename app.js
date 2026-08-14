@@ -611,6 +611,7 @@ async function processSingleChunk(idx) {
 
         const response = await fetch(gpuUrl, {
             method: "POST",
+            mode: "cors",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -638,33 +639,18 @@ async function processSingleChunk(idx) {
 
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
                 renderChunksTable();
-                addAppLog(`Đoạn ${item.id} tạo voice AI bằng server THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB)`);
+                addAppLog(`Đoạn ${item.id} tạo voice AI bằng máy chủ GPU THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB)`);
                 return;
             }
         }
         
-        throw new Error(`HTTP Status ${response.status} - Máy chủ chưa phản hồi audio.`);
+        throw new Error(`HTTP Status ${response.status} - Máy chủ GPU không trả về dữ liệu audio hợp lệ.`);
     } catch (err) {
         console.error("Lỗi gọi Serverless GPU:", err);
-        addAppLog(`Cảnh báo server Đoạn ${item.id}: ${err.message}. Đang xử lý tự động dự phòng...`);
-
-        // Dùng Blob tạo âm thanh mượt làm fallback dự phòng
-        const fallbackBlob = createWavAudioBlob(Math.max(2.0, item.text.length * 0.15), 440 + (idx * 20));
-        item.audioUrl = URL.createObjectURL(fallbackBlob);
-        item.status = "done";
-
-        currentUser.used += item.text.length;
-        if (usersDatabase.USERS[currentUser.username]) {
-            usersDatabase.USERS[currentUser.username].used = currentUser.used;
-        }
-        localStorage.setItem(`quota_used_${currentUser.username.toLowerCase()}`, currentUser.used);
-
-        // Đồng bộ lên Supabase Realtime Storage để mọi máy khác đều nhận đúng số ký tự đã dùng
-        syncUsersToGist().catch(e => console.warn("Lỗi sync quota Supabase:", e));
-
-        document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+        item.status = "error";
         renderChunksTable();
-        addAppLog(`Đoạn ${item.id} tạo voice AI bằng server THÀNH CÔNG 100%!`);
+        addAppLog(`Lỗi Đoạn ${item.id}: ${err.message}`);
+        showToast("Lỗi Tạo Voice", `Đoạn ${item.id} gặp sự cố: ${err.message}`, "error");
     }
 }
 
