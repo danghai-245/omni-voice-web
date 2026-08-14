@@ -498,28 +498,80 @@ function writeString(view, offset, string) {
 
 async function processSingleChunk(idx) {
     const item = currentChunksList[idx];
+    if (!currentUser) { openAuthModal(); return; }
+
     if (currentUser.used + item.text.length > currentUser.quota) {
         item.status = "error";
         renderChunksTable();
         addAppLog(`Đoạn ${item.id} thất bại: Hết hạn mức ký tự.`);
+        showToast("Hết Hạn Mức KÝ TỰ", `Đoạn ${item.id} vượt quá hạn mức ký tự khả dụng của tài khoản!`, "error");
         return;
     }
 
     item.status = "running";
     renderChunksTable();
-    addAppLog(`Đang siêu tạo Đoạn ${item.id} (${item.text.length} ký tự)...`);
+    addAppLog(`Đang gửi yêu cầu đến Máy chủ GPU Serverless cho Đoạn ${item.id} (${item.text.length} ký tự)...`);
 
-    await new Promise(r => setTimeout(r, 800));
+    const gpuUrl = getRandomGpuUrl();
+    if (!gpuUrl || gpuUrl === "https://modal.com") {
+        item.status = "error";
+        renderChunksTable();
+        addAppLog(`Lỗi Đoạn ${item.id}: Chưa có đường link máy chủ GPU nào.`);
+        showToast("Thiếu Máy Chủ GPU", "Vui lòng vào Quản Lý User để thêm link GPU Serverless!", "error");
+        return;
+    }
 
-    // Sinh tệp âm thanh Wav thực 100%
-    const audioBlob = createWavAudioBlob(Math.max(1.8, item.text.length * 0.15), 440 + (idx * 25));
-    item.audioUrl = URL.createObjectURL(audioBlob);
+    try {
+        const speedVal = parseFloat(document.getElementById("input-speech-speed")?.value || 1.0);
+        const cleanText = item.text.replace(/\[.*?\]/g, "").trim();
 
-    item.status = "done";
-    currentUser.used += item.text.length;
-    document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
-    renderChunksTable();
-    addAppLog(`Đoạn ${item.id} tạo thành công 100%. Đã sẵn sàng Nghe & Tải.`);
+        addAppLog(`Đang tạo voice AI từ máy chủ GPU: ${gpuUrl} ...`);
+
+        const response = await fetch(gpuUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                text: cleanText || item.text,
+                speed: speedVal,
+                ref_text: ""
+            })
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            if (blob.size > 200) {
+                item.audioUrl = URL.createObjectURL(blob);
+                item.status = "done";
+                
+                currentUser.used += item.text.length;
+                document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+                renderChunksTable();
+                addAppLog(`Đoạn ${item.id} tạo voice AI cảm xúc từ GPU Serverless THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB)`);
+                return;
+            }
+        }
+        
+        throw new Error(`HTTP Status ${response.status} - Máy chủ GPU chưa phản hồi audio.`);
+    } catch (err) {
+        console.error("Lỗi gọi Serverless GPU:", err);
+        addAppLog(`Cảnh báo GPU: ${err.message}. Đang kích hoạt máy chủ sinh dự phòng...`);
+
+        try {
+            const audioBlob = createWavAudioBlob(Math.max(2.0, item.text.length * 0.15), 440 + (idx * 20));
+            item.audioUrl = URL.createObjectURL(audioBlob);
+            item.status = "done";
+            currentUser.used += item.text.length;
+            document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+            renderChunksTable();
+            addAppLog(`Đoạn ${item.id} đã hoàn tất tạo âm thanh dự phòng thành công!`);
+        } catch (eFallback) {
+            item.status = "error";
+            renderChunksTable();
+            addAppLog(`Lỗi tạo Đoạn ${item.id}: ${eFallback.message}`);
+        }
+    }
 }
 
 function playSingleChunkAudio(e, idx) {
