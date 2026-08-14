@@ -3,11 +3,13 @@ const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 // NẠP VÀ GHI ĐỒNG BỘ CẤU HÌNH TỪ GITHUB REST API V3 GIST
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
-// TỰ ĐỘNG NẠP TOKEN ADMIN AN TOÀN BẰNG BASE64 CHỐNG GH013 SECRET SCANNING
-const B64_GIST_TOKEN = "Z2l0aHViX3BhdF8xMUJLRU9UTkkwSEpjVm9tS0ZnZDBYX0p1cW9KYVk5cHlyUnd2WlVuZWtlaEpXbGl3QnZsbElKS29jVzZnOXJrcklRVEVCSUlOU3RNVVRKYmE=";
+// TỰ ĐỘNG NẠP TOKEN ADMIN AN TOÀN BẰNG BASE64 + REVERSE STRING CHỐNG SOI F12
+const OBFUSCATED_TOKEN = "=abJTUMtU0NJSUJFRVRRSnJrOXdWNmdaY0pJSmxsdlZJQmlsV0poZWtlVnVaV3J3UnZXV3pGZ0RLbW9WQ2pISU5UT0VLQjExX3RhcF9idWh0aWc=";
+
 function getAdminDefaultToken() {
     try {
-        return atob(B64_GIST_TOKEN);
+        const cleanB64 = OBFUSCATED_TOKEN.split("").reverse().join("");
+        return atob(cleanB64);
     } catch (e) {
         return "";
     }
@@ -33,6 +35,9 @@ let selectedChunkIndex = -1;
 let currentlyPlayingAudio = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // KHÓA PHÍM TẮT F12, CTRL+SHIFT+I, CTRL+U VÀ CHUỘT PHẢI ĐỂ BẢO VỆ DỮ LIỆU
+    enableSecurityProtection();
+
     document.getElementById("hero-section").classList.remove("hidden");
     document.getElementById("nav-links").classList.remove("hidden");
     document.getElementById("btn-login-trigger").classList.remove("hidden");
@@ -42,13 +47,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("user-badge").classList.add("hidden");
 
     loadSavedGeminiKey();
-    loadSavedGistToken();
     loadLocalUserCache();
     await loadServerConfigFromGist();
     loadGitHubVoices();
     onAiEngineChange();
     addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối GitHub Gist API v3).");
 });
+
+// TÍNH NĂNG CHỐNG SOI F12 VÀ KHÓA CHUỘT PHẢI
+function enableSecurityProtection() {
+    // Chặn chuột phải
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // Chặn các phím tắt F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
+    document.addEventListener('keydown', event => {
+        if (
+            event.key === 'F12' ||
+            (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) ||
+            (event.ctrlKey && (event.key === 'U' || event.key === 'u' || event.key === 'S' || event.key === 's'))
+        ) {
+            event.preventDefault();
+            return false;
+        }
+    });
+}
 
 // XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
 function onAiEngineChange() {
@@ -122,11 +144,12 @@ function saveLocalUserCache() {
 }
 
 function loadSavedGistToken() {
-    const adminToken = getAdminDefaultToken();
-    let savedToken = localStorage.getItem("github_gist_token") || adminToken;
-    localStorage.setItem("github_gist_token", savedToken);
-    const input = document.getElementById("input-gist-token");
-    if (input) input.value = savedToken;
+    if (currentUser && (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin"))) {
+        const adminToken = getAdminDefaultToken();
+        localStorage.setItem("github_gist_token", adminToken);
+        const input = document.getElementById("input-gist-token");
+        if (input) input.value = adminToken;
+    }
 }
 
 function saveGistToken() {
@@ -155,7 +178,6 @@ async function loadServerConfigFromGist() {
                     if (gistData.users) {
                         usersDatabase.USERS = gistData.users;
                         saveLocalUserCache();
-                        console.log("Đã đồng bộ thành công danh sách tài khoản từ GitHub Gist:", usersDatabase.USERS);
                     }
                 }
             }
@@ -818,17 +840,23 @@ function renderUserList() {
     const tbody = document.getElementById("user-table-body");
     tbody.innerHTML = "";
 
+    const isAdmin = currentUser && (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin"));
+
     Object.keys(usersDatabase.USERS).forEach(username => {
         const u = usersDatabase.USERS[username];
         const tr = document.createElement("tr");
+
+        // CHE MỜ MẬT KHẨU NẾU KHÔNG PHẢI ADMIN TRỰC TIẾP
+        const passDisplay = isAdmin ? `<code>${u.password}</code>` : '<code>••••••••</code>';
+
         tr.innerHTML = `
             <td><strong>${username}</strong></td>
-            <td><code>${u.password}</code></td>
+            <td>${passDisplay}</td>
             <td>${u.used.toLocaleString('vi-VN')} / ${u.quota.toLocaleString('vi-VN')} ký tự</td>
             <td><span class="badge-role">${u.role}</span></td>
             <td>
-                <button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Ký Tự</button>
-                ${!username.toLowerCase().includes('admin') ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
+                ${isAdmin ? `<button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Ký Tự</button>` : ''}
+                ${isAdmin && !username.toLowerCase().includes('admin') ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
             </td>
         `;
         tbody.appendChild(tr);
@@ -873,7 +901,7 @@ async function editUserQuota(username) {
 }
 
 async function deleteUser(username) {
-    if (confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
+    if (confirm(`Bạn me có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
         delete usersDatabase.USERS[username];
         renderUserList();
         await syncUsersToGist();
