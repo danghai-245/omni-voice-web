@@ -1286,30 +1286,50 @@ function startDashboardAutoTimer() {
     }, 1000);
 }
 
+// BẢNG DỮ LIỆU CHI PHÍ CHI TIẾT TỪ MODAL API BILLING SUMMARY (KẾT XUẤT TỪ MODAL_TOKENS.TXT)
+const MODAL_ACCOUNT_BILLING = {
+    "hhhh01234501": { used: 0.81, limit: 30.00 },
+    "hai319959": { used: 0.24, limit: 30.00 },
+    "danghai30052005": { used: 0.07, limit: 30.00 }
+};
+
 async function scanModalGpuStatus() {
     const spinIcon = document.getElementById("spin-dash-icon");
     if (spinIcon) spinIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
     const grid = document.getElementById("modal-gpu-cards-grid");
 
-    // Nếu chưa có modalGpuUrls hoặc bị rỗng, tự nạp danh sách máy chủ mặc định
+    // Nếu chưa có modalGpuUrls hoặc bị rỗng, tự nạp danh sách máy chủ mặc định từ modal_tokens.txt
     if (!modalGpuUrls || modalGpuUrls.length === 0) {
         modalGpuUrls = [
-            "https://danghai-245--vieneu-tts-serverless-vieneumodel-generate.modal.run"
+            "https://hhhh01234501--vieneu-tts-serverless-vieneumodel-generate.modal.run",
+            "https://hai319959--vieneu-tts-serverless-vieneumodel-generate.modal.run",
+            "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
         ];
     }
 
     const totalEl = document.getElementById("stat-dash-total");
     if (totalEl) totalEl.innerText = modalGpuUrls.length;
 
-    // Render giao diện card ban đầu ngay lập tức cho Admin thấy
+    let totalUsedUsd = 0;
+    let totalLimitUsd = modalGpuUrls.length * 30.00;
+
+    // Render giao diện card chi tiết số $ thực tế đã sử dụng
     if (grid) {
         grid.innerHTML = modalGpuUrls.map((url, idx) => {
             let accName = "Máy Chủ GPU #" + (idx + 1);
+            let rawKey = "";
             try {
                 const m = url.match(/https:\/\/([^.]+)/);
-                if (m) accName = m[1].replace("--vieneu-tts-serverless-vieneumodel-generate", "").replace("--omni-voice-serverless-omnimodel-generate", "");
+                if (m) {
+                    rawKey = m[1].replace("--vieneu-tts-serverless-vieneumodel-generate", "").replace("--omni-voice-serverless-omnimodel-generate", "");
+                    accName = rawKey;
+                }
             } catch (e) {}
+
+            const billing = MODAL_ACCOUNT_BILLING[rawKey] || { used: 0.00, limit: 30.00 };
+            totalUsedUsd += billing.used;
+            const remUsd = Math.max(0, billing.limit - billing.used);
 
             return `
                 <div id="gpu-card-${idx}" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 16px; padding: 20px; transition: all 0.3s ease; position: relative;">
@@ -1323,7 +1343,7 @@ async function scanModalGpuStatus() {
                     </div>
 
                     <div style="background: rgba(124, 77, 255, 0.15); border: 1px solid rgba(124, 77, 255, 0.4); color: #B388FF; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; display: inline-block; margin-bottom: 12px;">
-                        💰 Credit: $30.00 Free (Serverless Standard)
+                        💰 Dùng: $${billing.used.toFixed(2)} / Còn: $${remUsd.toFixed(2)} (Hạn mức $${billing.limit.toFixed(2)})
                     </div>
 
                     <div style="font-size: 13px; color: #94A3B8; margin-bottom: 6px;">
@@ -1342,6 +1362,11 @@ async function scanModalGpuStatus() {
                 </div>
             `;
         }).join("");
+    }
+
+    const creditStatEl = document.getElementById("stat-dash-credit");
+    if (creditStatEl) {
+        creditStatEl.innerText = `$${totalUsedUsd.toFixed(2)} / $${totalLimitUsd.toFixed(2)}`;
     }
 
     const liveEl = document.getElementById("stat-dash-live");
