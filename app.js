@@ -847,6 +847,49 @@ function renderUserList() {
     });
 }
 
+function showToast(title, message, type = 'success') {
+    let container = document.getElementById("custom-toast-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "custom-toast-container";
+        container.style.cssText = `
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        `;
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `custom-toast toast-${type}`;
+    
+    let iconHtml = '<i class="fa-solid fa-circle-check" style="color: #10B981; font-size: 24px;"></i>';
+    if (type === 'error') iconHtml = '<i class="fa-solid fa-circle-xmark" style="color: #EF4444; font-size: 24px;"></i>';
+    if (type === 'warning') iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: #F59E0B; font-size: 24px;"></i>';
+
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 14px; pointer-events: auto;">
+            ${iconHtml}
+            <div>
+                <div style="font-weight: 700; font-size: 15px; color: #F8FAFC;">${title}</div>
+                <div style="font-size: 13px; color: #CBD5E1; margin-top: 2px;">${message}</div>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
+}
+
 async function addNewUser() {
     const name = document.getElementById("new-user-name").value.trim();
     const pass = document.getElementById("new-user-pass").value.trim();
@@ -854,7 +897,7 @@ async function addNewUser() {
     const role = document.getElementById("new-user-role").value.trim() || "Khách VIP";
 
     if (!name || !pass) {
-        alert("Vui lòng nhập Tên tài khoản và Mật khẩu!");
+        showToast("Thiếu Thông Tin", "Vui lòng nhập Tên tài khoản và Mật khẩu!", "error");
         return;
     }
 
@@ -863,7 +906,8 @@ async function addNewUser() {
     document.getElementById("new-user-pass").value = "";
     renderUserList();
     await syncUsersToGist();
-    alert(`Đã cấp tài khoản "${name}" thành công! Dữ liệu đã cập nhật trực tiếp vào file modal_urls.json trên GitHub Gist 100%.`);
+    
+    showToast("Lưu Tài Khoản Thành Công", `Tài khoản "${name}" đã được lưu trữ vĩnh viễn và đồng bộ ngay lập tức!`, "success");
 }
 
 async function editUserQuota(username) {
@@ -879,7 +923,7 @@ async function editUserQuota(username) {
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
             }
             await syncUsersToGist();
-            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự và lưu vào Gist!`);
+            showToast("Cập Nhật Hạn Mức", `Tài khoản "${username}" đã đổi hạn mức thành ${newQuota.toLocaleString('vi-VN')} ký tự!`, "success");
         }
     }
 }
@@ -889,7 +933,7 @@ async function deleteUser(username) {
         delete usersDatabase.USERS[username];
         renderUserList();
         await syncUsersToGist();
-        alert(`Đã xóa vĩnh viễn tài khoản "${username}" và cập nhật modal_urls.json trên Gist!`);
+        showToast("Đã Xóa Tài Khoản", `Đã xóa vĩnh viễn tài khoản "${username}" khỏi hệ thống!`, "warning");
     }
 }
 
