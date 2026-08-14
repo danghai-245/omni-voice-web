@@ -206,9 +206,14 @@
                     </div>
 
                     <label for="select-voice" style="margin-top: 10px; display: block;"><strong>Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</strong></label>
-                    <select id="select-voice">
-                        <option>Đang nạp danh sách giọng đọc...</option>
-                    </select>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                        <select id="select-voice" onchange="onVoiceSelectionChange()" style="flex: 1;">
+                            <option>Đang nạp danh sách giọng đọc...</option>
+                        </select>
+                        <button type="button" id="btn-preview-voice" class="btn-accent" onclick="playVoiceSample()" style="white-space: nowrap; width: auto; padding: 8px 14px; background: linear-gradient(135deg, #7C4DFF, #00E5FF); border: none; color: #FFF; font-weight: 700; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.25);">
+                            <i class="fa-solid fa-volume-high" id="icon-preview-voice"></i> <span id="text-preview-voice">Nghe Thử</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- BẢNG TINH CHỈNH PHÁT ÂM & ĐẶC TÍNH GIỌNG -->

@@ -876,7 +876,72 @@ function searchVoiceId() {
     const matched = allVoiceMetadata.find(v => v.voiceId.toLowerCase().includes(search) || v.raw.toLowerCase().includes(search));
     if (matched) {
         document.getElementById("select-voice").value = matched.name;
+        onVoiceSelectionChange();
     }
+}
+
+let sampleVoiceAudio = null;
+
+function onVoiceSelectionChange() {
+    if (sampleVoiceAudio) {
+        sampleVoiceAudio.pause();
+        sampleVoiceAudio = null;
+    }
+    const iconEl = document.getElementById("icon-preview-voice");
+    const textEl = document.getElementById("text-preview-voice");
+    if (iconEl) iconEl.className = "fa-solid fa-volume-high";
+    if (textEl) textEl.innerText = "Nghe Thử";
+}
+
+function playVoiceSample() {
+    const selectedVoiceName = document.getElementById("select-voice")?.value;
+    if (!selectedVoiceName || selectedVoiceName.includes("Đang nạp")) {
+        showToast("Chọn Giọng Đọc", "Vui lòng chọn một giọng đọc mẫu trong danh sách!", "warning");
+        return;
+    }
+
+    const matchedVoice = allVoiceMetadata.find(v => v.name === selectedVoiceName);
+    if (!matchedVoice || !matchedVoice.downloadUrl) {
+        showToast("Chưa Có Mẫu", `Chưa tìm thấy tệp nghe thử cho giọng: ${selectedVoiceName}`, "error");
+        return;
+    }
+
+    const iconEl = document.getElementById("icon-preview-voice");
+    const textEl = document.getElementById("text-preview-voice");
+
+    if (sampleVoiceAudio && !sampleVoiceAudio.paused) {
+        sampleVoiceAudio.pause();
+        sampleVoiceAudio = null;
+        if (iconEl) iconEl.className = "fa-solid fa-volume-high";
+        if (textEl) textEl.innerText = "Nghe Thử";
+        addAppLog(`Đã dừng nghe thử giọng: ${selectedVoiceName}`);
+        return;
+    }
+
+    if (iconEl) iconEl.className = "fa-solid fa-spinner fa-spin";
+    if (textEl) textEl.innerText = "Đang Tải...";
+
+    stopPlaying(); // Dừng phát audio chính nếu có
+
+    sampleVoiceAudio = new Audio(matchedVoice.downloadUrl);
+    sampleVoiceAudio.play().then(() => {
+        if (iconEl) iconEl.className = "fa-solid fa-pause";
+        if (textEl) textEl.innerText = "Dừng Nghe";
+        addAppLog(`Đang nghe thử giọng mẫu: ${matchedVoice.name}...`);
+        showToast("Nghe Thử Voice Mẫu", `Đang phát mẫu giọng VIP: ${matchedVoice.name}`, "info");
+    }).catch(err => {
+        console.error("Lỗi phát giọng mẫu:", err);
+        if (iconEl) iconEl.className = "fa-solid fa-volume-high";
+        if (textEl) textEl.innerText = "Nghe Thử";
+        showToast("Lỗi Nghe Thử", `Không thể phát tệp âm thanh mẫu: ${err.message}`, "error");
+    });
+
+    sampleVoiceAudio.onended = () => {
+        sampleVoiceAudio = null;
+        if (iconEl) iconEl.className = "fa-solid fa-volume-high";
+        if (textEl) textEl.innerText = "Nghe Thử";
+        addAppLog(`Đã phát xong giọng mẫu: ${matchedVoice.name}.`);
+    };
 }
 
 function insertEmotionTag(tag) {
@@ -1407,3 +1472,5 @@ window.switchStudioTab = switchStudioTab;
 window.openAdminModal = openAdminModal;
 window.scanModalGpuStatus = scanModalGpuStatus;
 window.generateAudio = generateAudio;
+window.playVoiceSample = playVoiceSample;
+window.onVoiceSelectionChange = onVoiceSelectionChange;
