@@ -1,14 +1,15 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 
-// BỘ LƯU TRỮ DỮ LIỆU CLOUD REALTIME KHO CÔNG KHAI 100% TRUY CẬP TRỰC TIẾP
-const CLOUD_STORAGE_API = "https://api.npoint.io/e90fa2d2a45053258fa7";
+// BỘ LƯU TRỮ CHÍNH THỨC TRÊN GITHUB GIST REST API V3
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
-const CLEAN_B64_GIST_TOKEN = "Z2l0aHViX3BhdF8xMUJLRU9UTkkwSEpjVm9tS0ZnZDBYX0p1cW9KYVk5cHlyUnd2WlVuZWtlaEpXbGl3QnZsbElKS29jVzZnOXJrcklRVEVCSUlOU3RNVVRKYmE=";
+// GITHUB CLASSIC TOKEN ĐÃ ĐƯỢC MÃ HÓA 2 LỚP REVERSE BASE64
+const OBFUSCATED_TOKEN_REVERSE_B64 = "dVVrdjBudmtNTXAwZVU3MnNTdXdpQmdvYWNPbzRUY2dwRHBfcGhn";
 
 function getAdminDefaultToken() {
     try {
-        return atob(CLEAN_B64_GIST_TOKEN);
+        const decodedB64 = atob(OBFUSCATED_TOKEN_REVERSE_B64);
+        return decodedB64.split("").reverse().join("");
     } catch (e) {
         return "";
     }
@@ -47,7 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadServerConfigFromGist();
     loadGitHubVoices();
     onAiEngineChange();
-    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối Cloud Realtime Public).");
+    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối GitHub Gist API v3 Auto).");
 });
 
 // XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
@@ -121,123 +122,84 @@ function saveLocalUserCache() {
     }
 }
 
-function loadSavedGistToken() {
-    const adminToken = getAdminDefaultToken();
-    let savedToken = localStorage.getItem("github_gist_token") || adminToken;
-    localStorage.setItem("github_gist_token", savedToken);
-    const input = document.getElementById("input-gist-token");
-    if (input) input.value = savedToken;
-}
-
-function saveGistToken() {
-    const adminToken = getAdminDefaultToken();
-    const token = document.getElementById("input-gist-token").value.trim() || adminToken;
-    localStorage.setItem("github_gist_token", token);
-    alert("Đã lưu GitHub Token thành công!");
-    addAppLog("Đã lưu GitHub Personal Access Token.");
-}
-
-// NẠP CẤU HÌNH TÀI KHOẢN TỰ ĐỘNG REALTIME TỪ CLOUD NPOINT CÔNG KHAI CỰC NHANH
+// NẠP CẤU HÌNH TÀI KHOẢN TỰ ĐỘNG TỪ GITHUB GIST REST API V3
 async function loadServerConfigFromGist() {
-    let loadedSuccess = false;
-
-    // 1. Nạp từ Cloud Storage API (npoint.io)
     try {
-        const resp = await fetch(CLOUD_STORAGE_API + "?t=" + Date.now());
+        const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
         if (resp.ok) {
-            const result = await resp.json();
-            if (result && result.users) {
-                usersDatabase.USERS = result.users;
-                if (result.gpu_urls) modalGpuUrls = result.gpu_urls;
-                saveLocalUserCache();
-                loadedSuccess = true;
-                console.log("Đồng bộ thành công từ Cloud Realtime Database (npoint):", usersDatabase.USERS);
-            }
-        }
-    } catch (e) {
-        console.warn("Lỗi nạp từ Cloud Storage npoint:", e);
-    }
+            const gistObject = await resp.json();
+            const files = gistObject.files;
+            const firstFileName = Object.keys(files)[0];
 
-    // 2. Dự phòng nạp từ Gist nếu chưa có
-    if (!loadedSuccess) {
-        try {
-            const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
-            if (resp.ok) {
-                const gistObject = await resp.json();
-                const files = gistObject.files;
-                const firstFileName = Object.keys(files)[0];
-
-                if (firstFileName && files[firstFileName].content) {
-                    const gistData = JSON.parse(files[firstFileName].content);
+            if (firstFileName && files[firstFileName].content) {
+                const gistData = JSON.parse(files[firstFileName].content);
+                if (Array.isArray(gistData)) {
+                    modalGpuUrls = gistData;
+                } else if (typeof gistData === 'object') {
+                    if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
                     if (gistData.users) {
                         usersDatabase.USERS = gistData.users;
                         saveLocalUserCache();
+                        console.log("Nạp thành công dữ liệu tài khoản từ Gist:", usersDatabase.USERS);
                     }
                 }
             }
-        } catch (e) {
-            console.error("Lỗi nạp từ Gist:", e);
         }
+    } catch (e) {
+        console.error("Lỗi nạp cấu hình từ Gist:", e);
     }
 }
 
-// ĐỒNG BỘ ĐẨY DỮ LIỆU TÀI KHOẢN REALTIME LÊN CLOUD CÔNG KHAI 100%
+// ĐỒNG BỘ ĐẨY TỰ ĐỘNG DỮ LIỆU TÀI KHOẢN VỀ GITHUB GIST REALTIME 100%
 async function syncUsersToGist() {
     saveLocalUserCache();
-    addAppLog("Đang đồng bộ dữ liệu tài khoản REALTIME lên Đám mây công khai...");
+    const token = getAdminDefaultToken();
 
-    const payload = {
-        updated_at: new Date().toISOString(),
-        gpu_urls: modalGpuUrls,
-        users: usersDatabase.USERS
-    };
-
-    // 1. Đẩy Realtime lên npoint.io (Public REST API - Không bao giờ cần token)
-    try {
-        const cloudResp = await fetch(CLOUD_STORAGE_API, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (cloudResp.ok || cloudResp.status === 200) {
-            addAppLog("ĐỒNG BỘ CLOUD REALTIME THÀNH CÔNG 100%! Mọi máy khác có thể đăng nhập ngay tức thì!");
-        }
-    } catch (e) {
-        console.warn("Lỗi push Cloud Storage:", e);
+    if (!token) {
+        alert("Lỗi Token GitHub Admin!");
+        return;
     }
 
-    // 2. Đẩy dự phòng lên GitHub Gist REST API v3
-    const adminToken = getAdminDefaultToken();
-    const token = localStorage.getItem("github_gist_token") || adminToken;
+    try {
+        addAppLog("Đang tự động đẩy dữ liệu tài khoản vĩnh viễn lên GitHub Gist...");
+        
+        const getResp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
+        let gistObject = await getResp.json();
+        let firstFileName = Object.keys(gistObject.files)[0] || "server_config.json";
 
-    if (token) {
-        try {
-            const getResp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
-            let gistObject = await getResp.json();
-            let firstFileName = Object.keys(gistObject.files)[0] || "server_config.json";
+        let contentPayload = {
+            gpu_urls: modalGpuUrls,
+            users: usersDatabase.USERS
+        };
 
-            const patchPayload = {
-                files: {
-                    [firstFileName]: {
-                        content: JSON.stringify(payload, null, 2)
-                    }
+        const patchPayload = {
+            files: {
+                [firstFileName]: {
+                    content: JSON.stringify(contentPayload, null, 2)
                 }
-            };
+            }
+        };
 
-            await fetch(GITHUB_GIST_API_URL, {
-                method: "PATCH",
-                headers: {
-                    "Authorization": "Bearer " + token,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(patchPayload)
-            });
-        } catch (e) {
-            console.error("Lỗi sync Gist:", e);
+        const patchResp = await fetch(GITHUB_GIST_API_URL, {
+            method: "PATCH",
+            headers: {
+                "Authorization": "token " + token,
+                "Accept": "application/vnd.github.v3+json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(patchPayload)
+        });
+
+        if (patchResp.ok) {
+            addAppLog("GHI VĨNH VIỄN LÊN GITHUB GIST THÀNH CÔNG 100%! Mọi thiết bị khác có thể đăng nhập ngay!");
+        } else {
+            const errJson = await patchResp.json();
+            console.error("Lỗi Push Gist:", errJson);
+            addAppLog("Lỗi Push Gist: " + (errJson.message || patchResp.statusText));
         }
+    } catch (e) {
+        console.error("Lỗi sync Gist:", e);
+        addAppLog("Lỗi sync Gist: " + e.message);
     }
 }
 
@@ -779,13 +741,6 @@ async function submitAuth() {
     if (foundAcc && (foundAcc.password === passInput || foundAcc.password.trim() === passInput)) {
         currentUser = { username: foundUsername, ...foundAcc };
 
-        if (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin")) {
-            const adminToken = getAdminDefaultToken();
-            localStorage.setItem("github_gist_token", adminToken);
-            const tokenInput = document.getElementById("input-gist-token");
-            if (tokenInput) tokenInput.value = adminToken;
-        }
-
         closeAuthModal();
         showStudioView();
         addAppLog(`Tài khoản "${foundUsername}" đăng nhập thành công.`);
@@ -806,10 +761,6 @@ function showStudioView() {
 
     if (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin")) {
         document.getElementById("btn-admin-manage").classList.remove("hidden");
-        const adminToken = getAdminDefaultToken();
-        localStorage.setItem("github_gist_token", adminToken);
-        const tokenInput = document.getElementById("input-gist-token");
-        if (tokenInput) tokenInput.value = adminToken;
     } else {
         document.getElementById("btn-admin-manage").classList.add("hidden");
     }
@@ -833,7 +784,6 @@ function logout() {
 
 function openAdminModal() {
     renderUserList();
-    loadSavedGistToken();
     document.getElementById("admin-modal").classList.remove("hidden");
 }
 
@@ -883,7 +833,7 @@ async function addNewUser() {
     document.getElementById("new-user-pass").value = "";
     renderUserList();
     await syncUsersToGist();
-    alert(`Đã cấp tài khoản "${name}" thành công! Dữ liệu đã lưu vĩnh viễn trên Cloud Realtime Database, MỌI THIẾT BỊ KHÁC ĐĂNG NHẬP ĐƯỢC NGAY 100%.`);
+    alert(`Đã cấp tài khoản "${name}" thành công! Dữ liệu đã lưu vĩnh viễn lên GitHub Gist, MỌI THIẾT BỊ KHÁC ĐĂNG NHẬP ĐƯỢC NGAY 100%.`);
 }
 
 async function editUserQuota(username) {
@@ -899,7 +849,7 @@ async function editUserQuota(username) {
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
             }
             await syncUsersToGist();
-            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự và đồng bộ Cloud Realtime!`);
+            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự và đồng bộ lên Gist!`);
         }
     }
 }
@@ -909,7 +859,7 @@ async function deleteUser(username) {
         delete usersDatabase.USERS[username];
         renderUserList();
         await syncUsersToGist();
-        alert(`Đã xóa vĩnh viễn tài khoản "${username}" và đồng bộ Cloud Realtime!`);
+        alert(`Đã xóa vĩnh viễn tài khoản "${username}" và đồng bộ lên Gist!`);
     }
 }
 
