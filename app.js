@@ -36,20 +36,40 @@ let selectedChunkIndex = -1;
 let currentlyPlayingAudio = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-    document.getElementById("hero-section").classList.remove("hidden");
-    document.getElementById("nav-links").classList.remove("hidden");
-    document.getElementById("btn-login-trigger").classList.remove("hidden");
-    document.getElementById("btn-studio-trigger").classList.remove("hidden");
+    document.getElementById("hero-section")?.classList.remove("hidden");
+    document.getElementById("nav-links")?.classList.remove("hidden");
+    document.getElementById("btn-login-trigger")?.classList.remove("hidden");
+    document.getElementById("btn-studio-trigger")?.classList.remove("hidden");
 
-    document.getElementById("studio-section").classList.add("hidden");
-    document.getElementById("user-badge").classList.add("hidden");
+    document.getElementById("studio-section")?.classList.add("hidden");
+    document.getElementById("user-badge")?.classList.add("hidden");
+
+    // Gắn sự kiện click trực tiếp bằng JS cho tất cả các nút Đăng nhập chống nghẽn
+    const loginBtnTrigger = document.getElementById("btn-login-trigger");
+    if (loginBtnTrigger) {
+        loginBtnTrigger.onclick = (e) => {
+            if (e) e.preventDefault();
+            openAuthModal();
+        };
+    }
+
+    const heroPrimaryBtn = document.querySelector(".btn-hero-primary");
+    if (heroPrimaryBtn) {
+        heroPrimaryBtn.onclick = (e) => {
+            if (e) e.preventDefault();
+            openAuthModal();
+        };
+    }
 
     loadSavedGeminiKey();
     loadLocalUserCache();
-    await loadServerConfigFromGist();
+    
+    // Nạp cấu hình ngầm bất đồng bộ không block giao diện
+    loadServerConfigFromGist().catch(err => console.warn("Lỗi nạp Supabase ngầm:", err));
+
     loadGitHubVoices();
     onAiEngineChange();
-    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đồng bộ file modal_urls.json trên Gist).");
+    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng.");
 });
 
 // XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
@@ -779,14 +799,23 @@ function insertEmotionTag(tag) {
 }
 
 function openAuthModal() {
-    document.getElementById("auth-modal").classList.remove("hidden");
-    setTimeout(() => {
-        document.getElementById("auth-username").focus();
-    }, 100);
+    const modal = document.getElementById("auth-modal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        modal.style.display = "flex";
+        setTimeout(() => {
+            const usernameInput = document.getElementById("auth-username");
+            if (usernameInput) usernameInput.focus();
+        }, 100);
+    }
 }
 
 function closeAuthModal() {
-    document.getElementById("auth-modal").classList.add("hidden");
+    const modal = document.getElementById("auth-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.style.display = "none";
+    }
 }
 
 function openStudio() {
