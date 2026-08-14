@@ -34,6 +34,9 @@ let usersDatabase = {
 let currentChunksList = [];
 let selectedChunkIndex = -1;
 let currentlyPlayingAudio = null;
+let sampleVoiceAudio = null;
+let activeModalVoiceAudio = null;
+let activePlayingVoiceName = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("hero-section")?.classList.remove("hidden");
@@ -813,6 +816,19 @@ async function loadGitHubVoices() {
         document.getElementById("stat-voice-count").innerText = countStr;
         populateFilters();
         applyFilters();
+
+        if (allVoiceMetadata.length > 0) {
+            const firstVoiceName = allVoiceMetadata[0].name;
+            const combo = document.getElementById("select-voice");
+            if (combo) {
+                combo.innerHTML = `<option value="${firstVoiceName}">${firstVoiceName}</option>`;
+                combo.value = firstVoiceName;
+            }
+            const currentNameEl = document.getElementById("current-selected-voice-name");
+            if (currentNameEl) {
+                currentNameEl.innerText = firstVoiceName;
+            }
+        }
 
         addAppLog(`Đã nạp xong ${countStr} giọng đọc VIP có sẵn thành công!`);
     } catch (e) {
