@@ -857,6 +857,9 @@ function openAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
         modal.style.display = "flex";
+        modal.style.opacity = "1";
+        modal.style.visibility = "visible";
+        modal.classList.remove("hidden");
         setTimeout(() => {
             const usernameInput = document.getElementById("auth-username");
             if (usernameInput) usernameInput.focus();
@@ -879,7 +882,7 @@ function openStudio() {
     }
 }
 
-// XÁC THỰC ĐĂNG NHẬP CHUẨN XÁC CHỐNG LỖI 100% & BẢO TOÀN SỐ KÝ TỰ ĐÃ DÙNG
+// XÁC THỰC ĐĂNG NHẬP TỨC THÌ NON-BLOCKING 100% CHỐNG NGHẼN NETWORK
 async function submitAuth() {
     const usernameInput = document.getElementById("auth-username").value.trim();
     const passInput = document.getElementById("auth-password").value.trim();
@@ -889,11 +892,8 @@ async function submitAuth() {
         return;
     }
 
-    try {
-        await loadServerConfigFromGist();
-    } catch (e) {
-        console.warn("Không nạp được từ Supabase, dùng cache local:", e);
-    }
+    // Nạp cấu hình Supabase ngầm không làm đơ nút Đăng nhập
+    loadServerConfigFromGist().catch(e => console.warn("Lỗi nạp Supabase ngầm:", e));
 
     const lowerInputName = usernameInput.toLowerCase();
     let foundUsername = null;
