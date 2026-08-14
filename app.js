@@ -615,6 +615,9 @@ async function processSingleChunk(idx) {
                     usersDatabase.USERS[currentUser.username].used = currentUser.used;
                 }
                 localStorage.setItem(`quota_used_${currentUser.username.toLowerCase()}`, currentUser.used);
+                
+                // Đồng bộ lên Supabase Realtime Storage để mọi máy khác đều nhận đúng số ký tự đã dùng
+                syncUsersToGist().catch(e => console.warn("Lỗi sync quota Supabase:", e));
 
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
                 renderChunksTable();
@@ -638,6 +641,9 @@ async function processSingleChunk(idx) {
             usersDatabase.USERS[currentUser.username].used = currentUser.used;
         }
         localStorage.setItem(`quota_used_${currentUser.username.toLowerCase()}`, currentUser.used);
+
+        // Đồng bộ lên Supabase Realtime Storage để mọi máy khác đều nhận đúng số ký tự đã dùng
+        syncUsersToGist().catch(e => console.warn("Lỗi sync quota Supabase:", e));
 
         document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
         renderChunksTable();
