@@ -910,31 +910,80 @@ async function addNewUser() {
     showToast("Lưu Tài Khoản Thành Công", `Tài khoản "${name}" đã được lưu trữ vĩnh viễn và đồng bộ ngay lập tức!`, "success");
 }
 
-async function editUserQuota(username) {
-    const currentAcc = usersDatabase.USERS[username];
-    const newQuotaStr = prompt(`Nhập Hạn Mức KÝ TỰ MỚI cho tài khoản ${username}:`, currentAcc.quota);
-    if (newQuotaStr !== null) {
-        const newQuota = parseInt(newQuotaStr);
-        if (!isNaN(newQuota)) {
-            currentAcc.quota = newQuota;
-            renderUserList();
-            if (currentUser && currentUser.username === username) {
-                currentUser.quota = newQuota;
-                document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
-            }
-            await syncUsersToGist();
-            showToast("Cập Nhật Hạn Mức", `Tài khoản "${username}" đã đổi hạn mức thành ${newQuota.toLocaleString('vi-VN')} ký tự!`, "success");
-        }
+let pendingDeleteUsername = "";
+let pendingEditQuotaUsername = "";
+
+function deleteUser(username) {
+    pendingDeleteUsername = username;
+    const txt = document.getElementById("confirm-delete-text");
+    if (txt) {
+        txt.innerHTML = `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản <strong style="color:#00E5FF;">"${username}"</strong> khỏi hệ thống không? Hành động này không thể hoàn tác.`;
     }
+    const btn = document.getElementById("btn-do-confirm-delete");
+    if (btn) {
+        btn.onclick = () => executeDeleteUser();
+    }
+    document.getElementById("confirm-delete-modal").classList.remove("hidden");
 }
 
-async function deleteUser(username) {
-    if (confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
-        delete usersDatabase.USERS[username];
-        renderUserList();
-        await syncUsersToGist();
-        showToast("Đã Xóa Tài Khoản", `Đã xóa vĩnh viễn tài khoản "${username}" khỏi hệ thống!`, "warning");
+function closeConfirmDeleteModal() {
+    document.getElementById("confirm-delete-modal").classList.add("hidden");
+    pendingDeleteUsername = "";
+}
+
+async function executeDeleteUser() {
+    if (!pendingDeleteUsername) return;
+    const targetUser = pendingDeleteUsername;
+    closeConfirmDeleteModal();
+
+    delete usersDatabase.USERS[targetUser];
+    renderUserList();
+    await syncUsersToGist();
+    showToast("Đã Xóa Tài Khoản", `Đã xóa vĩnh viễn tài khoản "${targetUser}" khỏi hệ thống!`, "warning");
+}
+
+function editUserQuota(username) {
+    pendingEditQuotaUsername = username;
+    const currentAcc = usersDatabase.USERS[username];
+    
+    const titleEl = document.getElementById("edit-quota-user-title");
+    if (titleEl) titleEl.innerText = `Đang sửa hạn mức cho tài khoản: "${username}"`;
+    const inputEl = document.getElementById("input-modal-new-quota");
+    if (inputEl) inputEl.value = currentAcc.quota;
+    
+    document.getElementById("edit-quota-modal").classList.remove("hidden");
+    setTimeout(() => {
+        if (inputEl) inputEl.focus();
+    }, 100);
+}
+
+function closeEditQuotaModal() {
+    document.getElementById("edit-quota-modal").classList.add("hidden");
+    pendingEditQuotaUsername = "";
+}
+
+async function submitEditUserQuotaModal() {
+    if (!pendingEditQuotaUsername) return;
+    const username = pendingEditQuotaUsername;
+    const inputEl = document.getElementById("input-modal-new-quota");
+    const newQuotaVal = parseInt(inputEl.value);
+    
+    if (isNaN(newQuotaVal) || newQuotaVal < 0) {
+        showToast("Hạn Mức Không Hợp Lệ", "Vui lòng nhập số ký tự hợp lệ!", "error");
+        return;
     }
+
+    closeEditQuotaModal();
+    const currentAcc = usersDatabase.USERS[username];
+    currentAcc.quota = newQuotaVal;
+    
+    renderUserList();
+    if (currentUser && currentUser.username === username) {
+        currentUser.quota = newQuotaVal;
+        document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+    }
+    await syncUsersToGist();
+    showToast("Cập Nhật Hạn Mức", `Tài khoản "${username}" đã đổi hạn mức thành ${newQuotaVal.toLocaleString('vi-VN')} ký tự!`, "success");
 }
 
 async function generateAudio() {
