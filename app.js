@@ -684,26 +684,38 @@ function playSingleChunkAudio(e, idx) {
         return;
     }
 
+    // Dừng tất cả âm thanh đang phát để tránh nhại giọng / tiếng vọng
     stopPlaying();
 
     const resultCard = document.getElementById("audio-result-card");
     const player = document.getElementById("audio-player");
     const downloadLink = document.getElementById("download-link");
 
-    if (resultCard && player) {
+    if (resultCard) {
         resultCard.classList.remove("hidden");
-        player.src = item.audioUrl;
-        downloadLink.href = item.audioUrl;
-        downloadLink.download = `HTH_Voice_Doan_${item.id}.wav`;
-        player.play().catch(err => console.log("Player play status:", err));
     }
 
-    currentlyPlayingAudio = new Audio(item.audioUrl);
-    currentlyPlayingAudio.play().then(() => {
-        addAppLog(`Đang phát âm thanh Đoạn ${item.id}...`);
-    }).catch(err => {
-        console.error("Lỗi phát audio:", err);
-    });
+    if (downloadLink) {
+        downloadLink.href = item.audioUrl;
+        downloadLink.download = `HTH_Voice_Doan_${item.id}.wav`;
+    }
+
+    if (player) {
+        player.src = item.audioUrl;
+        currentlyPlayingAudio = player;
+        player.play().then(() => {
+            addAppLog(`Đang phát âm thanh Đoạn ${item.id}...`);
+        }).catch(err => {
+            console.log("Audio player play notice:", err);
+        });
+    } else {
+        currentlyPlayingAudio = new Audio(item.audioUrl);
+        currentlyPlayingAudio.play().then(() => {
+            addAppLog(`Đang phát âm thanh Đoạn ${item.id}...`);
+        }).catch(err => {
+            console.error("Lỗi phát audio:", err);
+        });
+    }
 }
 
 function downloadChunkAudio(e, idx) {
