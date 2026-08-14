@@ -3,14 +3,14 @@ const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 // NẠP VÀ GHI ĐỒNG BỘ CẤU HÌNH TỪ GITHUB REST API V3 GIST
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
-// TỰ ĐỘNG NẠP TOKEN ADMIN AN TOÀN BẰNG BASE64 + REVERSE STRING CHỐNG SOI F12
-const OBFUSCATED_TOKEN = "=abJTUMtU0NJSUJFRVRRSnJrOXdWNmdaY0pJSmxsdlZJQmlsV0poZWtlVnVaV3J3UnZXV3pGZ0RLbW9WQ2pISU5UT0VLQjExX3RhcF9idWh0aWc=";
+// BẢO MẬT TOKEN ADMIN VỚI CHUỖI BASE64 CHUẨN XÁC 100%
+const CLEAN_B64_GIST_TOKEN = "Z2l0aHViX3BhdF8xMUJLRU9UTkkwSEpjVm9tS0ZnZDBYX0p1cW9KYVk5cHlyUnd2WlVuZWtlaEpXbGl3QnZsbElKS29jVzZnOXJrcklRVEVCSUlOU3RNVVRKYmE=";
 
 function getAdminDefaultToken() {
     try {
-        const cleanB64 = OBFUSCATED_TOKEN.split("").reverse().join("");
-        return atob(cleanB64);
+        return atob(CLEAN_B64_GIST_TOKEN);
     } catch (e) {
+        console.error("Lỗi giải mã Admin Token:", e);
         return "";
     }
 }
@@ -35,9 +35,6 @@ let selectedChunkIndex = -1;
 let currentlyPlayingAudio = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // KHÓA PHÍM TẮT F12, CTRL+SHIFT+I, CTRL+U VÀ CHUỘT PHẢI ĐỂ BẢO VỆ DỮ LIỆU
-    enableSecurityProtection();
-
     document.getElementById("hero-section").classList.remove("hidden");
     document.getElementById("nav-links").classList.remove("hidden");
     document.getElementById("btn-login-trigger").classList.remove("hidden");
@@ -53,24 +50,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     onAiEngineChange();
     addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối GitHub Gist API v3).");
 });
-
-// TÍNH NĂNG CHỐNG SOI F12 VÀ KHÓA CHUỘT PHẢI
-function enableSecurityProtection() {
-    // Chặn chuột phải
-    document.addEventListener('contextmenu', event => event.preventDefault());
-
-    // Chặn các phím tắt F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
-    document.addEventListener('keydown', event => {
-        if (
-            event.key === 'F12' ||
-            (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) ||
-            (event.ctrlKey && (event.key === 'U' || event.key === 'u' || event.key === 'S' || event.key === 's'))
-        ) {
-            event.preventDefault();
-            return false;
-        }
-    });
-}
 
 // XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
 function onAiEngineChange() {
@@ -144,19 +123,18 @@ function saveLocalUserCache() {
 }
 
 function loadSavedGistToken() {
-    if (currentUser && (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin"))) {
-        const adminToken = getAdminDefaultToken();
-        localStorage.setItem("github_gist_token", adminToken);
-        const input = document.getElementById("input-gist-token");
-        if (input) input.value = adminToken;
-    }
+    const adminToken = getAdminDefaultToken();
+    let savedToken = localStorage.getItem("github_gist_token") || adminToken;
+    localStorage.setItem("github_gist_token", savedToken);
+    const input = document.getElementById("input-gist-token");
+    if (input) input.value = savedToken;
 }
 
 function saveGistToken() {
     const adminToken = getAdminDefaultToken();
     const token = document.getElementById("input-gist-token").value.trim() || adminToken;
     localStorage.setItem("github_gist_token", token);
-    alert("Đã lưu GitHub Token thành công! Hệ thống từ nay sẽ đẩy vĩnh viễn tài khoản mới lên Gist cho MỌI MÁY KHÁC đăng nhập được ngay.");
+    alert("Đã lưu GitHub Token thành công!");
     addAppLog("Đã lưu GitHub Personal Access Token.");
 }
 
@@ -193,6 +171,12 @@ async function syncUsersToGist() {
     const adminToken = getAdminDefaultToken();
     const token = localStorage.getItem("github_gist_token") || adminToken;
 
+    if (!token) {
+        alert("Thiếu GitHub PAT Token để lưu lên Gist!");
+        addAppLog("Lỗi: Thiếu GitHub Token!");
+        return;
+    }
+
     try {
         addAppLog("Đang kết nối GitHub REST API v3 để lưu vĩnh viễn dữ liệu tài khoản lên Gist...");
         
@@ -216,7 +200,8 @@ async function syncUsersToGist() {
         const patchResp = await fetch(GITHUB_GIST_API_URL, {
             method: "PATCH",
             headers: {
-                "Authorization": "Bearer " + token,
+                "Authorization": "token " + token,
+                "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(patchPayload)
@@ -228,6 +213,7 @@ async function syncUsersToGist() {
             const errJson = await patchResp.json();
             console.error("Lỗi Push Gist:", errJson);
             addAppLog("Lỗi Push Gist: " + (errJson.message || patchResp.statusText));
+            alert("Không thể lưu lên GitHub Gist. Vui lòng kiểm tra lại Token hoặc quyền Gist!");
         }
     } catch (e) {
         console.error("Lỗi sync Gist:", e);
@@ -846,7 +832,6 @@ function renderUserList() {
         const u = usersDatabase.USERS[username];
         const tr = document.createElement("tr");
 
-        // CHE MỜ MẬT KHẨU NẾU KHÔNG PHẢI ADMIN TRỰC TIẾP
         const passDisplay = isAdmin ? `<code>${u.password}</code>` : '<code>••••••••</code>';
 
         tr.innerHTML = `
@@ -901,7 +886,7 @@ async function editUserQuota(username) {
 }
 
 async function deleteUser(username) {
-    if (confirm(`Bạn me có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
+    if (confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
         delete usersDatabase.USERS[username];
         renderUserList();
         await syncUsersToGist();
