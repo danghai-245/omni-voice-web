@@ -31,8 +31,8 @@
             <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-power-off"></i> Đăng xuất</button>
         </div>
 
-        <button class="btn-accent hidden" id="btn-studio-trigger" onclick="openStudio()"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Studio</button>
-        <button class="btn-login" id="btn-login-trigger" onclick="openAuthModal()"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
+        <button class="btn-accent hidden" id="btn-studio-trigger" onclick="openAuthModal(); return false;"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Studio</button>
+        <button class="btn-login" id="btn-login-trigger" onclick="openAuthModal(); return false;"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
     </header>
 
     <!-- TRANG GIỚI THIỆU (LANDING PAGE) -->
@@ -42,8 +42,8 @@
             <h1>Cỗ Máy Siêu Tạo Voice <br><span class="text-gradient">Tự Nhiên Như Người Thật</span></h1>
             <p>Hệ thống cỗ máy siêu tạo voice đa ngôn ngữ truyền cảm, sống động. Tự động đồng bộ hơn 700+ giọng đọc chất lượng cao VIP.</p>
             <div class="hero-btns">
-                <button class="btn-hero-primary" onclick="openAuthModal()"><i class="fa-solid fa-rocket"></i> Trải Nghiệm Ngay</button>
-                <button class="btn-hero-secondary" onclick="openStudio()"><i class="fa-solid fa-circle-play"></i> Xem Độc Quyền</button>
+                <button class="btn-hero-primary" onclick="openAuthModal(); return false;"><i class="fa-solid fa-rocket"></i> Trải Nghiệm Ngay</button>
+                <button class="btn-hero-secondary" onclick="openStudio(); return false;"><i class="fa-solid fa-circle-play"></i> Xem Độc Quyền</button>
             </div>
             <div class="stats-grid">
                 <div class="stat-card">

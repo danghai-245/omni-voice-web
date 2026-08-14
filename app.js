@@ -802,11 +802,11 @@ function openAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
         modal.classList.remove("hidden");
-        modal.style.setProperty("display", "flex", "important");
+        modal.style.cssText = "display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 999999 !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.85) !important;";
         setTimeout(() => {
             const usernameInput = document.getElementById("auth-username");
             if (usernameInput) usernameInput.focus();
-        }, 100);
+        }, 50);
     }
 }
 
@@ -814,7 +814,7 @@ function closeAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
         modal.classList.add("hidden");
-        modal.style.setProperty("display", "none", "important");
+        modal.style.cssText = "display: none !important; opacity: 0 !important; visibility: hidden !important;";
     }
 }
 
