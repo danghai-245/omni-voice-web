@@ -124,18 +124,23 @@ function saveLocalUserCache() {
 }
 
 const SERVER_CONFIG_ENDPOINT = "/api/config";
+const HTH_SECRET_AUTH_KEY = "HTH_VOICE_SECURE_AUTH_2026_TOKEN";
 
-// NẠP CẤU HÌNH TÀI KHOẢN REALTIME TỪ SERVERLESS ENDPOINT
+// NẠP CẤU HÌNH TÀI KHOẢN REALTIME TỪ SERVERLESS ENDPOINT VỚI XÁC THỰC BẢO MẬT
 async function loadServerConfigFromGist() {
     try {
-        const resp = await fetch(SERVER_CONFIG_ENDPOINT + "?t=" + Date.now());
+        const resp = await fetch(SERVER_CONFIG_ENDPOINT + "?t=" + Date.now(), {
+            headers: {
+                "X-HTH-Auth-Token": HTH_SECRET_AUTH_KEY
+            }
+        });
         if (resp.ok) {
             const gistData = await resp.json();
             if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
             if (gistData.users) {
                 usersDatabase.USERS = gistData.users;
                 saveLocalUserCache();
-                console.log("Nạp thành công cấu hình Realtime từ Server Endpoint:", usersDatabase.USERS);
+                console.log("Nạp thành công cấu hình Realtime Bảo Mật:", usersDatabase.USERS);
             }
         }
     } catch (e) {
@@ -143,12 +148,12 @@ async function loadServerConfigFromGist() {
     }
 }
 
-// ĐỒNG BỘ CẬP NHẬT DỮ LIỆU TÀI KHOẢN REALTIME TỐC ĐỘ CAO
+// ĐỒNG BỘ CẬP NHẬT DỮ LIỆU TÀI KHOẢN REALTIME TỐC ĐỘ CAO VỚI XÁC THỰC BẢO MẬT
 async function syncUsersToGist() {
     saveLocalUserCache();
 
     try {
-        addAppLog("Đang cập nhật dữ liệu tài khoản Realtime...");
+        addAppLog("Đang cập nhật dữ liệu tài khoản Realtime Bảo Mật...");
 
         const patchPayload = {
             gpu_urls: modalGpuUrls,
@@ -158,13 +163,14 @@ async function syncUsersToGist() {
         const patchResp = await fetch(SERVER_CONFIG_ENDPOINT, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "X-HTH-Auth-Token": HTH_SECRET_AUTH_KEY
             },
             body: JSON.stringify(patchPayload)
         });
 
         if (patchResp.ok) {
-            addAppLog("ĐỒNG BỘ DỮ LIỆU TÀI KHOẢN TỐC ĐỘ MILI-GIÂY THÀNH CÔNG 100%! Mọi thiết bị khác có thể đăng nhập ngay!");
+            addAppLog("ĐỒNG BỘ DỮ LIỆU BẢO MẬT VĨNH VIỄN THÀNH CÔNG 100%! Mọi thiết bị khác có thể đăng nhập ngay!");
         } else {
             const errJson = await patchResp.json();
             console.error("Lỗi Push Server:", errJson);
