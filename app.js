@@ -123,76 +123,56 @@ function saveLocalUserCache() {
     }
 }
 
-// NẠP CẤU HÌNH TÀI KHOẢN CHỈ TỪ FILE MODAL_URLS.JSON TRÊN GITHUB GIST
+const SERVER_CONFIG_ENDPOINT = "/api/config";
+
+// NẠP CẤU HÌNH TÀI KHOẢN REALTIME TỪ SERVERLESS ENDPOINT
 async function loadServerConfigFromGist() {
     try {
-        const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
+        const resp = await fetch(SERVER_CONFIG_ENDPOINT + "?t=" + Date.now());
         if (resp.ok) {
-            const gistObject = await resp.json();
-            const files = gistObject.files;
-            const targetFile = files[TARGET_GIST_FILENAME] || files[Object.keys(files)[0]];
-
-            if (targetFile && targetFile.content) {
-                const gistData = JSON.parse(targetFile.content);
-                if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
-                if (gistData.users) {
-                    usersDatabase.USERS = gistData.users;
-                    saveLocalUserCache();
-                    console.log("Nạp thành công từ modal_urls.json trên Gist:", usersDatabase.USERS);
-                }
+            const gistData = await resp.json();
+            if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
+            if (gistData.users) {
+                usersDatabase.USERS = gistData.users;
+                saveLocalUserCache();
+                console.log("Nạp thành công cấu hình Realtime từ Server Endpoint:", usersDatabase.USERS);
             }
         }
     } catch (e) {
-        console.error("Lỗi nạp cấu hình từ Gist:", e);
+        console.error("Lỗi nạp cấu hình từ Server:", e);
     }
 }
 
-// ĐỒNG BỘ CHỈ SỬA TRỰC TIẾP FILE MODAL_URLS.JSON NẰM TRÊN GITHUB GIST (KHÔNG TẠO FILE MỚI)
+// ĐỒNG BỘ CẬP NHẬT DỮ LIỆU TÀI KHOẢN REALTIME TỐC ĐỘ CAO
 async function syncUsersToGist() {
     saveLocalUserCache();
-    const token = getAdminDefaultToken();
-
-    if (!token) {
-        alert("Lỗi Token GitHub Admin!");
-        return;
-    }
 
     try {
-        addAppLog("Đang cập nhật trực tiếp dữ liệu vào file modal_urls.json trên GitHub Gist...");
-        
-        let contentPayload = {
+        addAppLog("Đang cập nhật dữ liệu tài khoản Realtime...");
+
+        const patchPayload = {
             gpu_urls: modalGpuUrls,
             users: usersDatabase.USERS
         };
 
-        const patchPayload = {
-            files: {
-                [TARGET_GIST_FILENAME]: {
-                    content: JSON.stringify(contentPayload, null, 2)
-                }
-            }
-        };
-
-        const patchResp = await fetch(GITHUB_GIST_API_URL, {
-            method: "PATCH",
+        const patchResp = await fetch(SERVER_CONFIG_ENDPOINT, {
+            method: "POST",
             headers: {
-                "Authorization": "token " + token,
-                "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(patchPayload)
         });
 
         if (patchResp.ok) {
-            addAppLog("CẬP NHẬT TRỰC TIẾP VÀO FILE MODAL_URLS.JSON TRÊN GIST THÀNH CÔNG 100%!");
+            addAppLog("ĐỒNG BỘ DỮ LIỆU TÀI KHOẢN TỐC ĐỘ MILI-GIÂY THÀNH CÔNG 100%! Mọi thiết bị khác có thể đăng nhập ngay!");
         } else {
             const errJson = await patchResp.json();
-            console.error("Lỗi Push Gist:", errJson);
-            addAppLog("Lỗi Push Gist: " + (errJson.message || patchResp.statusText));
+            console.error("Lỗi Push Server:", errJson);
+            addAppLog("Lỗi Push Server: " + (errJson.error || patchResp.statusText));
         }
     } catch (e) {
-        console.error("Lỗi sync Gist:", e);
-        addAppLog("Lỗi sync Gist: " + e.message);
+        console.error("Lỗi sync Server:", e);
+        addAppLog("Lỗi sync Server: " + e.message);
     }
 }
 
