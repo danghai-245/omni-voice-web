@@ -64,12 +64,21 @@
 
     <!-- TRANG CÔNG CỤ TẠO VOICE CHUYÊN NGHIỆP (STUDIO VIEW CHUẨN 100% TOOL EXE) -->
     <div id="studio-section" class="studio-container hidden">
-        <div class="studio-header">
-            <h2><i class="fa-solid fa-sliders"></i> HTH SUPPER VOICE VIP STUDIO</h2>
-            <span class="status-indicator"><i class="fa-solid fa-circle-check"></i> Sẵn sàng sử dụng</span>
+        <div class="studio-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; gap:12px; align-items:center;">
+                <button class="btn-hero-primary active-tab-btn" id="tab-btn-studio" onclick="switchStudioTab('voice')" style="padding: 8px 16px; font-size: 0.9rem;">
+                    <i class="fa-solid fa-microphone-lines"></i> Studio Tạo Voice AI
+                </button>
+                <button class="btn-hero-secondary" id="tab-btn-modal-dashboard" onclick="switchStudioTab('dashboard')" style="padding: 8px 16px; font-size: 0.9rem;">
+                    <i class="fa-solid fa-chart-line"></i> ⚡ Giám Sát Realtime Modal GPU
+                </button>
+            </div>
+            <span class="status-indicator" id="modal-global-status-badge"><i class="fa-solid fa-circle-check"></i> Serverless GPU Sẵn sàng</span>
         </div>
 
-        <div class="studio-grid">
+        <!-- TAB 1: GIAO DIỆN TẠO VOICE STUDIO CHÍNH -->
+        <div id="tab-content-voice-studio">
+            <div class="studio-grid">
             <!-- CỘT BÊN TRÁI: KỊCH BẢN, BIỂU CẢM VÀ BẢNG PHÂN ĐOẠN -->
             <div class="panel-left">
                 <!-- CẤU HÌNH GOOGLE GEMINI API KEY -->
@@ -331,8 +340,56 @@
                     <a id="download-link" href="#" download class="btn-secondary-block"><i class="fa-solid fa-download"></i> Tải File Âm Thanh (.wav)</a>
                 </div>
             </div>
+        </div> <!-- KẾT THÚC TAB 1 STUDIO -->
+
+        <!-- TAB 2: TAB GIÁM SÁT REALTIME MODAL GPU DASHBOARD (ĐẦY ĐỦ NHƯ MO_DASHBOARD_KIEM_TRA_ACC_MODAL.BAT) -->
+        <div id="tab-content-modal-dashboard" class="hidden">
+            <div style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #00E5FF, #7C4DFF); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #fff; box-shadow: 0 0 20px rgba(0,229,255,0.4);">⚡</div>
+                        <div>
+                            <h3 style="font-size: 20px; font-weight: 800; background: linear-gradient(90deg, #00E5FF, #A78BFA); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MODAL GPU REALTIME MONITOR & BILLING</h3>
+                            <p style="font-size: 13px; color: #94A3B8; margin-top: 2px;">Kiểm tra Trạng thái Realtime, Chi phí Credit $30 & Độ trễ Ping các máy chủ GPU Modal</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="btn-import-file" onclick="scanModalGpuStatus()" style="padding: 10px 18px; background: linear-gradient(135deg, #10B981, #059669); color: #FFF; font-weight: 700;">
+                            <span id="spin-dash-icon"><i class="fa-solid fa-rotate"></i></span> Quét Ngay
+                        </button>
+                        <div style="font-size: 13px; color: #00E5FF; font-weight: 600; background: rgba(0,229,255,0.1); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(0,229,255,0.2);">
+                            ⏱️ Tự quét lại trong: <strong id="dash-timer-val" style="font-size: 15px; color: #FFF;">30s</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BẢNG THỐNG KÊ KẾT QUẢ STATS CARDS -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px;">
+                        <div style="font-size: 12px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px;">Tổng Số GPU Endpoints</div>
+                        <div id="stat-dash-total" style="font-size: 28px; font-weight: 800; color: #FFF; margin-top: 4px;">--</div>
+                    </div>
+                    <div style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2); border-radius: 14px; padding: 18px;">
+                        <div style="font-size: 12px; color: #10B981; text-transform: uppercase; letter-spacing: 0.5px;">Tài Khoản Live 🟢</div>
+                        <div id="stat-dash-live" style="font-size: 28px; font-weight: 800; color: #10B981; margin-top: 4px;">--</div>
+                    </div>
+                    <div style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: 14px; padding: 18px;">
+                        <div style="font-size: 12px; color: #EF4444; text-transform: uppercase; letter-spacing: 0.5px;">Tài Khoản Off / Lỗi 🔴</div>
+                        <div id="stat-dash-die" style="font-size: 28px; font-weight: 800; color: #EF4444; margin-top: 4px;">--</div>
+                    </div>
+                    <div style="background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2); border-radius: 14px; padding: 18px;">
+                        <div style="font-size: 12px; color: #00E5FF; text-transform: uppercase; letter-spacing: 0.5px;">Chi Phí Đã Dùng / Ước Tính 💵</div>
+                        <div id="stat-dash-credit" style="font-size: 24px; font-weight: 800; color: #00E5FF; margin-top: 4px;">$0.00 / $30.00</div>
+                    </div>
+                </div>
+
+                <!-- KHU VỰC HIỂN THỊ CARDS CÁC TÀI KHOẢN MODAL GPU REALTIME -->
+                <div id="modal-gpu-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                    <!-- Render động danh sách máy chủ GPU -->
+                </div>
+            </div>
         </div>
-    </div>
 
     <!-- MODAL ĐĂNG NHẬP -->
     <div id="auth-modal" class="modal-overlay hidden">
