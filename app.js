@@ -104,7 +104,7 @@ function onAiEngineChange() {
     if (emotionContainer) {
         if (isVieneu) {
             emotionContainer.innerHTML = `
-                <span class="tag-title">Chèn biểu cảm VieNeu (VIP 2):</span>
+                <span class="tag-title">Chèn biểu cảm (VIP 2):</span>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[cười]')">Cười 😊</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[thở dài]')">Thở dài 😮‍💨</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[hắng giọng]')">Hắng giọng 🗣️</button>
@@ -115,7 +115,7 @@ function onAiEngineChange() {
             `;
         } else {
             emotionContainer.innerHTML = `
-                <span class="tag-title">Chèn biểu cảm OmniVoice (VIP 1):</span>
+                <span class="tag-title">Chèn biểu cảm (VIP 1):</span>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[laughter]')">Cười 😄</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[sigh]')">Thở dài 😮‍💨</button>
                 <button type="button" class="btn-tag" onclick="insertEmotionTag('[surprise-ah]')">Ngạc nhiên 😲</button>
@@ -953,7 +953,7 @@ function playDirectVoiceSample(voiceName) {
 
     activeModalVoiceAudio = new Audio(matchedVoice.downloadUrl);
     activeModalVoiceAudio.play().then(() => {
-        showToast("Đang Phát Voice Mẫu", `Đang nghe thử: ${voiceName}`, "info");
+        showToast("Đang Phát Voice", `Đang phát voice ${voiceName}`, "info");
     }).catch(err => {
         console.error("Lỗi phát voice:", err);
         window.activePlayingVoiceName = "";
