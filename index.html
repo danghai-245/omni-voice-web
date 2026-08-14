@@ -192,32 +192,32 @@
             <!-- CỘT BÊN PHẢI: CHỌN GIỌNG, TINH CHỈNH PHÁT ÂM VÀ GỘP FILE HOÀN CHỈNH -->
             <div class="panel-right">
                 <div class="card-box voice-picker-card">
-                    <h3><i class="fa-solid fa-user-gear"></i> Giọng đọc tham chiếu (Voice Clone)</h3>
+                    <h3><i class="fa-solid fa-user-gear"></i> Giọng đọc mẫu đã chọn</h3>
                     
-                    <div class="filter-row">
-                        <select id="filter-lang" onchange="applyFilters()"><option>Ngôn ngữ: Tất cả</option></select>
-                        <select id="filter-gender" onchange="applyFilters()"><option>Giới tính: Tất cả</option></select>
-                        <select id="filter-cat" onchange="applyFilters()"><option>Thể loại: Tất cả</option></select>
-                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 12px; padding: 14px 16px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">Giọng VIP hiện tại:</span>
+                            <span id="selected-voice-tag" style="background: rgba(0, 229, 255, 0.15); color: #00E5FF; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">700+ Giọng VIP</span>
+                        </div>
+                        
+                        <div style="font-size: 1rem; font-weight: 700; color: #F8FAFC; word-break: break-word; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;" id="selected-voice-display">
+                            <i class="fa-solid fa-microphone-lines" style="color: #00E5FF; font-size: 18px;"></i>
+                            <span id="current-selected-voice-name">Aaditya - Luxury Ads and Commercials</span>
+                        </div>
 
-                    <div class="input-with-btn">
-                        <input type="text" id="input-voice-id" placeholder="🔍 Nhập mã Voice ID để chọn giọng nhanh...">
-                        <button class="btn-icon" onclick="searchVoiceId()"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        <label for="select-voice"><strong>Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</strong></label>
-                        <button type="button" onclick="openVoiceBrowserModal()" style="background: rgba(0, 229, 255, 0.15); border: 1px solid #00E5FF; color: #00E5FF; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; transition: all 0.2s;">
-                            <i class="fa-solid fa-list-ul"></i> Bảng Duyệt VIP
-                        </button>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                        <select id="select-voice" onchange="onVoiceSelectionChange()" style="flex: 1;">
-                            <option>Đang nạp danh sách giọng đọc...</option>
+                        <!-- Trình chọn giọng ẩn hỗ trợ lấy value -->
+                        <select id="select-voice" onchange="onVoiceSelectionChange()" style="display: none;">
+                            <option value="Aaditya - Luxury Ads and Commercials">Aaditya - Luxury Ads and Commercials</option>
                         </select>
-                        <button type="button" id="btn-preview-voice" class="btn-accent" onclick="playVoiceSample()" style="white-space: nowrap; width: auto; padding: 8px 14px; background: linear-gradient(135deg, #7C4DFF, #00E5FF); border: none; color: #FFF; font-weight: 700; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.25);">
-                            <i class="fa-solid fa-volume-high" id="icon-preview-voice"></i> <span id="text-preview-voice">Nghe Thử</span>
-                        </button>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" onclick="openVoiceBrowserModal()" style="flex: 1; padding: 10px 12px; background: linear-gradient(135deg, #7C4DFF, #00E5FF); border: none; color: #FFF; font-weight: 700; font-size: 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.25);">
+                                <i class="fa-solid fa-list-ul"></i> Mở Bảng 700+ Giọng VIP
+                            </button>
+                            <button type="button" id="btn-preview-voice" class="btn-accent" onclick="playVoiceSample()" style="padding: 10px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-weight: 700; font-size: 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-volume-high" id="icon-preview-voice"></i> <span id="text-preview-voice">Nghe Thử</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -541,17 +541,32 @@
         </div>
     </div>
 
-    <!-- MODAL DUYỆT BẢNG GIỌNG ĐỌC CÓ NÚT PLAY TRỰC TIẾP TỪNG VOICE -->
+    <!-- MODAL DUYỆT BẢNG GIỌNG ĐỌC CÓ NÚT PLAY TRỰC TIẾP TỪNG VOICE VÀ BỘ LỌC ĐẦY ĐỦ -->
     <div id="voice-browser-modal" class="modal-overlay hidden" style="display: none;">
-        <div class="modal-card" style="max-width: 820px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; border-color: rgba(0, 229, 255, 0.4);">
+        <div class="modal-card" style="max-width: 880px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; border-color: rgba(0, 229, 255, 0.4);">
             <button class="modal-close" onclick="closeVoiceBrowserModal()">&times;</button>
-            <h3 style="color: #00E5FF; margin-bottom: 12px;"><i class="fa-solid fa-headphones"></i> Bảng Duyệt VIP 700+ Giọng Đọc (Có Nút ▶ Play Nghe Ngay)</h3>
+            <h3 style="color: #00E5FF; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-headphones"></i> Bảng Duyệt VIP 700+ Giọng Đọc (Có Nút ▶ Play Nghe Trực Tiếp)
+            </h3>
             
-            <div style="margin-bottom: 15px;">
-                <input type="text" id="voice-modal-search-input" oninput="renderVoiceBrowserList()" placeholder="🔍 Tìm nhanh giọng đọc theo tên, thể loại, giới tính, ngôn ngữ..." style="width: 100%; padding: 10px 16px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.95rem;">
+            <!-- BỘ LỌC TÌM KIẾM ĐẦY ĐỦ TRONG MODAL -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 14px;">
+                <input type="text" id="voice-modal-search-input" oninput="renderVoiceBrowserList()" placeholder="🔍 Tìm tên hoặc Voice ID..." style="padding: 8px 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
+                
+                <select id="modal-filter-lang" onchange="renderVoiceBrowserList()" style="padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
+                    <option value="Tất cả">Ngôn ngữ: Tất cả</option>
+                </select>
+
+                <select id="modal-filter-gender" onchange="renderVoiceBrowserList()" style="padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
+                    <option value="Tất cả">Giới tính: Tất cả</option>
+                </select>
+
+                <select id="modal-filter-cat" onchange="renderVoiceBrowserList()" style="padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
+                    <option value="Tất cả">Thể loại: Tất cả</option>
+                </select>
             </div>
 
-            <div id="voice-browser-list-container" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 10px; padding-right: 4px; max-height: 60vh;">
+            <div id="voice-browser-list-container" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; padding-right: 4px; max-height: 62vh;">
                 <!-- JS Render Danh Sách Voice Có Nút Play Trực Tiếp -->
             </div>
         </div>

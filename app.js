@@ -843,170 +843,65 @@ function populateFilters() {
     const genders = [...new Set(allVoiceMetadata.map(v => v.gender))].sort();
     const cats = [...new Set(allVoiceMetadata.map(v => v.category))].sort();
 
-    fillCombo("filter-lang", ["Ngôn ngữ: Tất cả", ...langs]);
-    fillCombo("filter-gender", ["Giới tính: Tất cả", ...genders]);
-    fillCombo("filter-cat", ["Thể loại: Tất cả", ...cats]);
+    fillCombo("modal-filter-lang", ["Ngôn ngữ: Tất cả", ...langs]);
+    fillCombo("modal-filter-gender", ["Giới tính: Tất cả", ...genders]);
+    fillCombo("modal-filter-cat", ["Thể loại: Tất cả", ...cats]);
 }
 
 function fillCombo(id, values) {
     const el = document.getElementById(id);
-    el.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join("");
+    if (el) {
+        el.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join("");
+    }
 }
 
 function applyFilters() {
-    const selectedLang = document.getElementById("filter-lang").value;
-    const selectedGender = document.getElementById("filter-gender").value;
-    const selectedCat = document.getElementById("filter-cat").value;
-
-    const filtered = allVoiceMetadata.filter(v => {
-        if (selectedLang !== "Ngôn ngữ: Tất cả" && v.lang !== selectedLang) return false;
-        if (selectedGender !== "Giới tính: Tất cả" && v.gender !== selectedGender) return false;
-        if (selectedCat !== "Thể loại: Tất cả" && v.category !== selectedCat) return false;
-        return true;
-    });
-
-    const combo = document.getElementById("select-voice");
-    combo.innerHTML = filtered.map(v => `<option value="${v.name}">▶ ${v.name}</option>`).join("");
-}
-
-function searchVoiceId() {
-    const search = document.getElementById("input-voice-id").value.trim().toLowerCase();
-    if (!search) return;
-
-    const matched = allVoiceMetadata.find(v => v.voiceId.toLowerCase().includes(search) || v.raw.toLowerCase().includes(search));
-    if (matched) {
-        document.getElementById("select-voice").value = matched.name;
-        onVoiceSelectionChange();
-    }
-}
-
-let sampleVoiceAudio = null;
-
-function onVoiceSelectionChange() {
-    if (sampleVoiceAudio) {
-        sampleVoiceAudio.pause();
-        sampleVoiceAudio = null;
-    }
-    const iconEl = document.getElementById("icon-preview-voice");
-    const textEl = document.getElementById("text-preview-voice");
-    if (iconEl) iconEl.className = "fa-solid fa-volume-high";
-    if (textEl) textEl.innerText = "Nghe Thử";
-
-    // Tự động kích hoạt nghe thử mẫu giọng ngay khi người dùng chọn giọng mới
-    playVoiceSample();
-}
-
-function playVoiceSample() {
-    const selectedVoiceName = document.getElementById("select-voice")?.value;
-    if (!selectedVoiceName || selectedVoiceName.includes("Đang nạp")) {
-        showToast("Chọn Giọng Đọc", "Vui lòng chọn một giọng đọc mẫu trong danh sách!", "warning");
-        return;
-    }
-
-    const matchedVoice = allVoiceMetadata.find(v => v.name === selectedVoiceName);
-    if (!matchedVoice || !matchedVoice.downloadUrl) {
-        showToast("Chưa Có Mẫu", `Chưa tìm thấy tệp nghe thử cho giọng: ${selectedVoiceName}`, "error");
-        return;
-    }
-
-    const iconEl = document.getElementById("icon-preview-voice");
-    const textEl = document.getElementById("text-preview-voice");
-
-    if (sampleVoiceAudio && !sampleVoiceAudio.paused) {
-        sampleVoiceAudio.pause();
-        sampleVoiceAudio = null;
-        if (iconEl) iconEl.className = "fa-solid fa-volume-high";
-        if (textEl) textEl.innerText = "Nghe Thử";
-        addAppLog(`Đã dừng nghe thử giọng: ${selectedVoiceName}`);
-        return;
-    }
-
-    if (iconEl) iconEl.className = "fa-solid fa-spinner fa-spin";
-    if (textEl) textEl.innerText = "Đang Tải...";
-
-    stopPlaying(); // Dừng phát audio chính nếu có
-
-    sampleVoiceAudio = new Audio(matchedVoice.downloadUrl);
-    sampleVoiceAudio.play().then(() => {
-        if (iconEl) iconEl.className = "fa-solid fa-pause";
-        if (textEl) textEl.innerText = "Dừng Nghe";
-        addAppLog(`Đang nghe thử giọng mẫu: ${matchedVoice.name}...`);
-        showToast("Nghe Thử Voice Mẫu", `Đang phát mẫu giọng VIP: ${matchedVoice.name}`, "info");
-    }).catch(err => {
-        console.error("Lỗi phát giọng mẫu:", err);
-        if (iconEl) iconEl.className = "fa-solid fa-volume-high";
-        if (textEl) textEl.innerText = "Nghe Thử";
-        showToast("Lỗi Nghe Thử", `Không thể phát tệp âm thanh mẫu: ${err.message}`, "error");
-    });
-
-    sampleVoiceAudio.onended = () => {
-        sampleVoiceAudio = null;
-        if (iconEl) iconEl.className = "fa-solid fa-volume-high";
-        if (textEl) textEl.innerText = "Nghe Thử";
-        addAppLog(`Đã phát xong giọng mẫu: ${matchedVoice.name}.`);
-    };
-}
-
-let activeModalVoiceAudio = null;
-let activePlayingVoiceName = "";
-
-function openVoiceBrowserModal() {
-    const modal = document.getElementById("voice-browser-modal");
-    if (modal) {
-        modal.style.display = "flex";
-        modal.classList.remove("hidden");
-        renderVoiceBrowserList();
-    }
-}
-
-function closeVoiceBrowserModal() {
-    const modal = document.getElementById("voice-browser-modal");
-    if (modal) {
-        modal.style.display = "none";
-        modal.classList.add("hidden");
-    }
-    if (activeModalVoiceAudio) {
-        activeModalVoiceAudio.pause();
-        activeModalVoiceAudio = null;
-        activePlayingVoiceName = "";
-    }
+    renderVoiceBrowserList();
 }
 
 function renderVoiceBrowserList() {
     const container = document.getElementById("voice-browser-list-container");
     const keyword = (document.getElementById("voice-modal-search-input")?.value || "").trim().toLowerCase();
+    const selectedLang = document.getElementById("modal-filter-lang")?.value || "Tất cả";
+    const selectedGender = document.getElementById("modal-filter-gender")?.value || "Tất cả";
+    const selectedCat = document.getElementById("modal-filter-cat")?.value || "Tất cả";
+
     if (!container) return;
 
     const filtered = allVoiceMetadata.filter(v => {
+        if (selectedLang !== "Tất cả" && selectedLang !== "Ngôn ngữ: Tất cả" && v.lang !== selectedLang) return false;
+        if (selectedGender !== "Tất cả" && selectedGender !== "Giới tính: Tất cả" && v.gender !== selectedGender) return false;
+        if (selectedCat !== "Tất cả" && selectedCat !== "Thể loại: Tất cả" && v.category !== selectedCat) return false;
+        
         if (!keyword) return true;
-        return v.name.toLowerCase().includes(keyword) || v.lang.toLowerCase().includes(keyword) || v.gender.toLowerCase().includes(keyword) || v.category.toLowerCase().includes(keyword);
+        return v.name.toLowerCase().includes(keyword) || v.voiceId.toLowerCase().includes(keyword) || v.lang.toLowerCase().includes(keyword) || v.gender.toLowerCase().includes(keyword) || v.category.toLowerCase().includes(keyword);
     });
 
     if (filtered.length === 0) {
-        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #94A3B8; padding: 20px;">Không tìm thấy giọng đọc phù hợp với từ khóa "${keyword}".</div>`;
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #94A3B8; padding: 30px;">Không tìm thấy giọng đọc phù hợp với tiêu chí lọc.</div>`;
         return;
     }
 
     container.innerHTML = filtered.map(v => {
         const isPlaying = activePlayingVoiceName === v.name;
         return `
-            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${isPlaying ? '#00E5FF' : 'rgba(255,255,255,0.08)'}; padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid ${isPlaying ? '#00E5FF' : 'rgba(255,255,255,0.08)'}; padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                 <div style="flex: 1; overflow: hidden;">
-                    <div style="font-weight: 700; color: #F8FAFC; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <div style="font-weight: 700; color: #F8FAFC; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         ${v.name}
                     </div>
-                    <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 2px;">
-                        <span style="color: #00E5FF;">${v.lang}</span> • <span>${v.gender}</span> • <span>${v.category}</span>
+                    <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 3px;">
+                        <span style="color: #00E5FF; font-weight: 600;">${v.lang}</span> • <span>${v.gender}</span> • <span>${v.category}</span>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 6px;">
-                    <button type="button" onclick="playDirectVoiceSample('${v.name.replace(/'/g, "\\'")}')" style="background: ${isPlaying ? '#EF4444' : 'linear-gradient(135deg, #7C4DFF, #00E5FF)'}; border: none; color: #FFF; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" onclick="playDirectVoiceSample('${v.name.replace(/'/g, "\\'")}')" title="Nghe thử giọng này" style="background: ${isPlaying ? '#EF4444' : 'linear-gradient(135deg, #7C4DFF, #00E5FF)'}; border: none; color: #FFF; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.15s;">
                         <i class="fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}" style="${isPlaying ? '' : 'margin-left: 2px;'}"></i>
                     </button>
 
-                    <button type="button" onclick="selectVoiceFromBrowserModal('${v.name.replace(/'/g, "\\'")}')" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10B981; color: #10B981; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
-                        Chọn
+                    <button type="button" onclick="selectVoiceFromBrowserModal('${v.name.replace(/'/g, "\\'")}')" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10B981; color: #10B981; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-check"></i> Chọn
                     </button>
                 </div>
             </div>
@@ -1057,8 +952,15 @@ function playDirectVoiceSample(voiceName) {
 function selectVoiceFromBrowserModal(voiceName) {
     const combo = document.getElementById("select-voice");
     if (combo) {
+        combo.innerHTML = `<option value="${voiceName}" selected>${voiceName}</option>`;
         combo.value = voiceName;
     }
+
+    const currentNameEl = document.getElementById("current-selected-voice-name");
+    if (currentNameEl) {
+        currentNameEl.innerText = voiceName;
+    }
+
     showToast("Đã Chọn Giọng", `Đã thiết lập giọng đọc chính: ${voiceName}`, "success");
     closeVoiceBrowserModal();
 }
