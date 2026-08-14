@@ -605,9 +605,27 @@ async function processSingleChunk(idx) {
 
     try {
         const speedVal = parseFloat(document.getElementById("input-speech-speed")?.value || 1.0);
-        const cleanText = item.text.replace(/\[.*?\]/g, "").trim();
+        
+        // Chuẩn hóa văn bản sạch trùng khớp 100% với Tool EXE Python chống lặp giọng / tiếng vọng
+        let cleanText = item.text || "";
+        const validTags = new Set(["[cười]", "[thở dài]", "[hắng giọng]", "[thì thầm]", "[ngập ngừng]", "[nói chậm]", "[nhấn giọng]"]);
+        const tagMap = {
+            "[laughter]": "[cười]", "[sigh]": "[thở dài]",
+            "[surprise-ah]": "", "[surprise-oh]": "",
+            "[question-en]": "", "[dissatisfaction-hnn]": ""
+        };
+        for (const [oldTag, newTag] of Object.entries(tagMap)) {
+            cleanText = cleanText.replaceAll(oldTag, newTag);
+        }
+        cleanText = cleanText.replace(/\[.*?\]/g, (match) => {
+            return validTags.has(match.toLowerCase()) ? match : "";
+        });
+        cleanText = cleanText.replace(/\s+/g, " ").trim();
+        if (cleanText && !/[.!?:;]$/.test(cleanText)) {
+            cleanText += ".";
+        }
 
-        addAppLog(`Đang tạo bằng server cho Đoạn ${item.id}...`);
+        addAppLog(`Đang gửi câu lệnh chuẩn hóa đến GPU cho Đoạn ${item.id}: "${cleanText.substring(0, 40)}..."`);
 
         const response = await fetch(gpuUrl, {
             method: "POST",
