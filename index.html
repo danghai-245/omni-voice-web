@@ -363,12 +363,21 @@
         </div>
     </div>
 
-    <!-- MODAL BẢNG QUẢN LÝ USER ADMIN MANAGER -->
+    <!-- MODAL BẢNG QUẢN LÝ USER ADMIN MANAGER TÍCH HỢP GITHUB TOKEN VĨNH VIỄN -->
     <div id="admin-modal" class="modal-overlay hidden">
         <div class="modal-card modal-large">
             <button class="modal-close" onclick="closeAdminModal()">&times;</button>
             <h3><i class="fa-solid fa-crown"></i> Bảng Quản Lý Người Dùng & Hạn Mức (Admin VIP)</h3>
-            
+
+            <!-- CẤU HÌNH GITHUB TOKEN ĐỂ ĐẨY TRỰC TIẾP LÊN GITHUB GIST -->
+            <div style="background: rgba(0, 229, 255, 0.05); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-top: 12px;">
+                <label style="color: var(--primary); font-size: 0.85rem; font-weight: 700;"><i class="fa-brands fa-github"></i> GitHub Token (Gist Push - Để máy khác đăng nhập được ngay):</label>
+                <div class="input-with-btn" style="margin-top: 6px;">
+                    <input type="password" id="input-gist-token" placeholder="Nhập GitHub Personal Access Token (ghp_...)" onchange="saveGistToken()">
+                    <button class="btn-icon" onclick="saveGistToken()"><i class="fa-solid fa-floppy-disk"></i> Lưu Token</button>
+                </div>
+            </div>
+
             <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:16px; margin: 16px 0;">
                 <h4 style="color:#10B981; font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới:</h4>
                 <div class="grid-2-col">
@@ -379,7 +388,7 @@
                     <input type="number" id="new-user-quota" placeholder="Hạn mức KÝ TỰ (mặc định 100,000)..." value="100000">
                     <input type="text" id="new-user-role" placeholder="Vai trò (Khách VIP)..." value="Khách VIP">
                 </div>
-                <button class="btn-accent" onclick="addNewUser()" style="margin-top: 12px; width: auto;"><i class="fa-solid fa-plus"></i> Cấp Tài Khoản</button>
+                <button class="btn-accent" onclick="addNewUser()" style="margin-top: 12px; width: auto;"><i class="fa-solid fa-plus"></i> Cấp Tài Khoản & Gửi Lên Gist</button>
             </div>
 
             <div style="max-height: 250px; overflow-y: auto;">

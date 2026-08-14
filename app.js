@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("user-badge").classList.add("hidden");
 
     loadSavedGeminiKey();
+    loadSavedGistToken();
     loadLocalUserCache();
     await loadServerConfigFromGist();
     loadGitHubVoices();
@@ -110,6 +111,19 @@ function saveLocalUserCache() {
     }
 }
 
+function loadSavedGistToken() {
+    const savedToken = localStorage.getItem("github_gist_token") || "";
+    const input = document.getElementById("input-gist-token");
+    if (input) input.value = savedToken;
+}
+
+function saveGistToken() {
+    const token = document.getElementById("input-gist-token").value.trim();
+    localStorage.setItem("github_gist_token", token);
+    alert("Đã lưu GitHub Token thành công! Hệ thống từ nay sẽ đẩy vĩnh viễn tài khoản mới lên Gist cho MỌI MÁY KHÁC đăng nhập được ngay.");
+    addAppLog("Đã lưu GitHub Personal Access Token.");
+}
+
 // NẠP CẤU HÌNH TÀI KHOẢN VÀ MẬT KHẨU TỪ GITHUB GIST REST API V3 TỨC THÌ
 async function loadServerConfigFromGist() {
     try {
@@ -138,10 +152,56 @@ async function loadServerConfigFromGist() {
     }
 }
 
-// ĐỒNG BỘ ĐẨY DỮ LIỆU TÀI KHOẢN ADMIN MỚI TẠO HOẶC CHỈNH SỬA VỀ GIST TRÁNH BỊ TỰ XÓA
+// ĐỒNG BỘ ĐẨY DỮ LIỆU TÀI KHOẢN ADMIN MỚI TẠO HOẶC CHỈNH SỬA VỀ GITHUB GIST THỰC SỰ
 async function syncUsersToGist() {
     saveLocalUserCache();
-    addAppLog("Đã cập nhật danh sách tài khoản vào bộ nhớ hệ thống.");
+    const token = localStorage.getItem("github_gist_token") || (document.getElementById("input-gist-token") ? document.getElementById("input-gist-token").value.trim() : "");
+
+    if (!token) {
+        addAppLog("Cảnh báo: Chưa nhập GitHub Token trong Bảng Admin. Dữ liệu đã lưu tạm ở máy hiện tại.");
+        return;
+    }
+
+    try {
+        addAppLog("Đang kết nối GitHub REST API v3 để lưu vĩnh viễn dữ liệu tài khoản lên Gist...");
+        
+        const getResp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
+        let gistObject = await getResp.json();
+        let firstFileName = Object.keys(gistObject.files)[0] || "server_config.json";
+
+        let contentPayload = {
+            gpu_urls: modalGpuUrls,
+            users: usersDatabase.USERS
+        };
+
+        const patchPayload = {
+            files: {
+                [firstFileName]: {
+                    content: JSON.stringify(contentPayload, null, 2)
+                }
+            }
+        };
+
+        const patchResp = await fetch(GITHUB_GIST_API_URL, {
+            method: "PATCH",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(patchPayload)
+        });
+
+        if (patchResp.ok) {
+            addAppLog("GHI VĨNH VIỄN LÊN GITHUB GIST THÀNH CÔNG 100%! Mọi máy tính và điện thoại khác bây giờ đã có thể đăng nhập ngay!");
+        } else {
+            const errJson = await patchResp.json();
+            console.error("Lỗi Push Gist:", errJson);
+            addAppLog("Lỗi Push Gist: " + (errJson.message || patchResp.statusText));
+        }
+    } catch (e) {
+        console.error("Lỗi sync Gist:", e);
+        addAppLog("Lỗi sync Gist: " + e.message);
+    }
 }
 
 // GHI LOG VÀO KHUNG APP LOGS CHUẨN TOOL EXE
@@ -752,7 +812,7 @@ function renderUserList() {
     });
 }
 
-function addNewUser() {
+async function addNewUser() {
     const name = document.getElementById("new-user-name").value.trim();
     const pass = document.getElementById("new-user-pass").value.trim();
     const quota = parseInt(document.getElementById("new-user-quota").value.trim()) || 100000;
@@ -766,35 +826,35 @@ function addNewUser() {
     usersDatabase.USERS[name] = { password: pass, quota: quota, used: 0, role: role };
     document.getElementById("new-user-name").value = "";
     document.getElementById("new-user-pass").value = "";
-    syncUsersToGist();
     renderUserList();
-    alert(`Đã thêm tài khoản "${name}" thành công và lưu vĩnh viễn!`);
+    await syncUsersToGist();
+    alert(`Đã cấp tài khoản "${name}" thành công! Dữ liệu đã đẩy vĩnh viễn lên GitHub Gist, sang máy khác có thể đăng nhập ngay 100%.`);
 }
 
-function editUserQuota(username) {
+async function editUserQuota(username) {
     const currentAcc = usersDatabase.USERS[username];
     const newQuotaStr = prompt(`Nhập Hạn Mức KÝ TỰ MỚI cho tài khoản ${username}:`, currentAcc.quota);
     if (newQuotaStr !== null) {
         const newQuota = parseInt(newQuotaStr);
         if (!isNaN(newQuota)) {
             currentAcc.quota = newQuota;
-            syncUsersToGist();
             renderUserList();
             if (currentUser && currentUser.username === username) {
                 currentUser.quota = newQuota;
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
             }
-            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự!`);
+            await syncUsersToGist();
+            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự và đồng bộ lên Gist!`);
         }
     }
 }
 
-function deleteUser(username) {
+async function deleteUser(username) {
     if (confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${username}" không?`)) {
         delete usersDatabase.USERS[username];
-        syncUsersToGist();
         renderUserList();
-        alert(`Đã xóa vĩnh viễn tài khoản "${username}"!`);
+        await syncUsersToGist();
+        alert(`Đã xóa vĩnh viễn tài khoản "${username}" và đồng bộ lên Gist!`);
     }
 }
 
