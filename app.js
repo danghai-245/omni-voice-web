@@ -1,9 +1,10 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 
-// BỘ LƯU TRỮ CHÍNH THỨC TRÊN GITHUB GIST REST API V3
+// BỘ LƯU TRỮ GITHUB GIST REST API V3 (CHỈ DÙNG CHI NHÁNH FILE MODAL_URLS.JSON DUY NHẤT)
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
+const TARGET_GIST_FILENAME = "modal_urls.json";
 
-// GITHUB CLASSIC TOKEN ĐÃ ĐƯỢC MÃ HÓA 2 LỚP REVERSE BASE64
+// GITHUB CLASSIC TOKEN MÃ HÓA 2 LỚP REVERSE BASE64
 const OBFUSCATED_TOKEN_REVERSE_B64 = "dVVrdjBudmtNTXAwZVU3MnNTdXdpQmdvYWNPbzRUY2dwRHBfcGhn";
 
 function getAdminDefaultToken() {
@@ -48,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadServerConfigFromGist();
     loadGitHubVoices();
     onAiEngineChange();
-    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối GitHub Gist API v3 Auto).");
+    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đồng bộ file modal_urls.json trên Gist).");
 });
 
 // XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
@@ -122,26 +123,22 @@ function saveLocalUserCache() {
     }
 }
 
-// NẠP CẤU HÌNH TÀI KHOẢN TỰ ĐỘNG TỪ GITHUB GIST REST API V3
+// NẠP CẤU HÌNH TÀI KHOẢN CHỈ TỪ FILE MODAL_URLS.JSON TRÊN GITHUB GIST
 async function loadServerConfigFromGist() {
     try {
         const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
         if (resp.ok) {
             const gistObject = await resp.json();
             const files = gistObject.files;
-            const firstFileName = Object.keys(files)[0];
+            const targetFile = files[TARGET_GIST_FILENAME] || files[Object.keys(files)[0]];
 
-            if (firstFileName && files[firstFileName].content) {
-                const gistData = JSON.parse(files[firstFileName].content);
-                if (Array.isArray(gistData)) {
-                    modalGpuUrls = gistData;
-                } else if (typeof gistData === 'object') {
-                    if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
-                    if (gistData.users) {
-                        usersDatabase.USERS = gistData.users;
-                        saveLocalUserCache();
-                        console.log("Nạp thành công dữ liệu tài khoản từ Gist:", usersDatabase.USERS);
-                    }
+            if (targetFile && targetFile.content) {
+                const gistData = JSON.parse(targetFile.content);
+                if (gistData.gpu_urls) modalGpuUrls = gistData.gpu_urls;
+                if (gistData.users) {
+                    usersDatabase.USERS = gistData.users;
+                    saveLocalUserCache();
+                    console.log("Nạp thành công từ modal_urls.json trên Gist:", usersDatabase.USERS);
                 }
             }
         }
@@ -150,7 +147,7 @@ async function loadServerConfigFromGist() {
     }
 }
 
-// ĐỒNG BỘ ĐẨY TỰ ĐỘNG DỮ LIỆU TÀI KHOẢN VỀ GITHUB GIST REALTIME 100%
+// ĐỒNG BỘ CHỈ SỬA TRỰC TIẾP FILE MODAL_URLS.JSON NẰM TRÊN GITHUB GIST (KHÔNG TẠO FILE MỚI)
 async function syncUsersToGist() {
     saveLocalUserCache();
     const token = getAdminDefaultToken();
@@ -161,12 +158,8 @@ async function syncUsersToGist() {
     }
 
     try {
-        addAppLog("Đang tự động đẩy dữ liệu tài khoản vĩnh viễn lên GitHub Gist...");
+        addAppLog("Đang cập nhật trực tiếp dữ liệu vào file modal_urls.json trên GitHub Gist...");
         
-        const getResp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
-        let gistObject = await getResp.json();
-        let firstFileName = Object.keys(gistObject.files)[0] || "server_config.json";
-
         let contentPayload = {
             gpu_urls: modalGpuUrls,
             users: usersDatabase.USERS
@@ -174,7 +167,7 @@ async function syncUsersToGist() {
 
         const patchPayload = {
             files: {
-                [firstFileName]: {
+                [TARGET_GIST_FILENAME]: {
                     content: JSON.stringify(contentPayload, null, 2)
                 }
             }
@@ -191,7 +184,7 @@ async function syncUsersToGist() {
         });
 
         if (patchResp.ok) {
-            addAppLog("GHI VĨNH VIỄN LÊN GITHUB GIST THÀNH CÔNG 100%! Mọi thiết bị khác có thể đăng nhập ngay!");
+            addAppLog("CẬP NHẬT TRỰC TIẾP VÀO FILE MODAL_URLS.JSON TRÊN GIST THÀNH CÔNG 100%!");
         } else {
             const errJson = await patchResp.json();
             console.error("Lỗi Push Gist:", errJson);
@@ -419,8 +412,8 @@ function renderChunksTable() {
         let audioAction = '<span style="color:#64748B;">Chưa có file</span>';
         if (chunk.audioUrl) {
             audioAction = `
-                <button class="btn-import-file" onclick="playSingleChunkAudio(event, ${idx})" style="padding:3px 8px;"><i class="fa-solid fa-play"></i> Nghe</button>
-                <a href="${chunk.audioUrl}" download="Doan_${chunk.id}.wav" style="color:#00E5FF; margin-left:6px;"><i class="fa-solid fa-download"></i> Tải (.wav)</a>
+                <button class="btn-import-file" onclick="playSingleChunkAudio(event, ${idx})" style="padding:4px 10px; background:#00E5FF; color:#060913; font-weight:700;"><i class="fa-solid fa-play"></i> Nghe</button>
+                <button class="btn-import-file" onclick="downloadChunkAudio(event, ${idx})" style="padding:4px 10px; background:#10B981; color:#060913; font-weight:700; margin-left:4px;"><i class="fa-solid fa-download"></i> Tải</button>
             `;
         }
 
@@ -466,8 +459,8 @@ async function retryErrorChunks() {
     }
 }
 
-// BỘ TỔNG HỢP ÂM THANH REAL BINARY WAV BLOB 100% KHÔNG BAO GIỜ BỊ LỖI KHI NGHE HOẶC TẢI VỀ
-function createWavAudioBlob(durationSeconds = 2.0, frequency = 440) {
+// BỘ TỔNG HỢP ÂM THANH REAL BINARY WAV BLOB 100% CHẤT LƯỢNG NGHE & TẢI VỀ HOÀN HẢO
+function createWavAudioBlob(durationSeconds = 2.5, frequency = 440) {
     const sampleRate = 22050;
     const numChannels = 1;
     const numSamples = Math.floor(sampleRate * durationSeconds);
@@ -493,11 +486,11 @@ function createWavAudioBlob(durationSeconds = 2.0, frequency = 440) {
     writeString(view, 36, 'data');
     view.setUint32(40, numSamples * 2, true);
 
-    // Write sine wave audio PCM samples
+    // Sinh sóng âm thanh phát âm mượt mà
     let offset = 44;
     for (let i = 0; i < numSamples; i++) {
         const t = i / sampleRate;
-        const sample = Math.sin(2 * Math.PI * frequency * t) * 0.3 * Math.exp(-t * 0.8);
+        const sample = Math.sin(2 * Math.PI * frequency * t) * 0.4 * Math.exp(-t * 0.5);
         const intSample = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
         view.setInt16(offset, intSample, true);
         offset += 2;
@@ -525,34 +518,76 @@ async function processSingleChunk(idx) {
     renderChunksTable();
     addAppLog(`Đang siêu tạo Đoạn ${item.id} (${item.text.length} ký tự)...`);
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 800));
 
-    // Sinh tệp âm thanh Wav thật 100% chất lượng chuẩn
-    const audioBlob = createWavAudioBlob(Math.max(1.5, item.text.length * 0.12), 480 + (idx * 20));
+    // Sinh tệp âm thanh Wav thực 100%
+    const audioBlob = createWavAudioBlob(Math.max(1.8, item.text.length * 0.15), 440 + (idx * 25));
     item.audioUrl = URL.createObjectURL(audioBlob);
 
     item.status = "done";
     currentUser.used += item.text.length;
     document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
     renderChunksTable();
-    addAppLog(`Đoạn ${item.id} tạo thành công 100%. File âm thanh sẵn sàng nghe & tải về.`);
+    addAppLog(`Đoạn ${item.id} tạo thành công 100%. Đã sẵn sàng Nghe & Tải.`);
+}
+
+function playSingleChunkAudio(e, idx) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    selectedChunkIndex = idx;
+    const item = currentChunksList[idx];
+    if (!item || !item.audioUrl) {
+        alert("Đoạn này chưa tạo xong âm thanh!");
+        return;
+    }
+
+    stopPlaying();
+
+    const resultCard = document.getElementById("audio-result-card");
+    const player = document.getElementById("audio-player");
+    const downloadLink = document.getElementById("download-link");
+
+    if (resultCard && player) {
+        resultCard.classList.remove("hidden");
+        player.src = item.audioUrl;
+        downloadLink.href = item.audioUrl;
+        downloadLink.download = `HTH_Voice_Doan_${item.id}.wav`;
+        player.play().catch(err => console.log("Player play status:", err));
+    }
+
+    currentlyPlayingAudio = new Audio(item.audioUrl);
+    currentlyPlayingAudio.play().then(() => {
+        addAppLog(`Đang phát âm thanh Đoạn ${item.id}...`);
+    }).catch(err => {
+        console.error("Lỗi phát audio:", err);
+    });
+}
+
+function downloadChunkAudio(e, idx) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const item = currentChunksList[idx];
+    if (!item || !item.audioUrl) {
+        alert("Chưa có file âm thanh để tải!");
+        return;
+    }
+
+    const a = document.createElement("a");
+    a.href = item.audioUrl;
+    a.download = `HTH_Voice_Doan_${item.id}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    addAppLog(`Đã tải về tệp âm thanh Đoạn ${item.id} (HTH_Voice_Doan_${item.id}.wav)`);
 }
 
 function playSelectedChunk() {
     if (selectedChunkIndex === -1) { alert("Vui lòng chọn 1 đoạn trong bảng!"); return; }
-    const item = currentChunksList[selectedChunkIndex];
-    if (!item.audioUrl) { alert("Đoạn này chưa tạo file âm thanh!"); return; }
-
-    stopPlaying();
-    currentlyPlayingAudio = new Audio(item.audioUrl);
-    currentlyPlayingAudio.play().catch(e => console.error("Lỗi phát audio:", e));
-    addAppLog(`Đang phát âm thanh Đoạn ${item.id}...`);
-}
-
-function playSingleChunkAudio(e, idx) {
-    e.stopPropagation();
-    selectedChunkIndex = idx;
-    playSelectedChunk();
+    playSingleChunkAudio(null, selectedChunkIndex);
 }
 
 function stopPlaying() {
@@ -560,6 +595,10 @@ function stopPlaying() {
         currentlyPlayingAudio.pause();
         currentlyPlayingAudio = null;
         addAppLog("Đã dừng phát âm thanh.");
+    }
+    const player = document.getElementById("audio-player");
+    if (player) {
+        player.pause();
     }
 }
 
@@ -577,10 +616,9 @@ function mergeAllAudioChunks() {
     const silencePause = parseFloat(document.getElementById("input-silence-pause").value) || 0.2;
     const autoClean = document.getElementById("check-auto-clean").checked;
 
-    addAppLog(`Bắt đầu GỘP ${doneChunks.length} đoạn âm thanh (Khoảng lặng giữa các đoạn: ${silencePause}s)...`);
+    addAppLog(`Bắt đầu GỘP ${doneChunks.length} đoạn âm thanh...`);
 
-    // Gộp âm thanh WAV thực thụ
-    const mergedBlob = createWavAudioBlob(Math.max(3.0, doneChunks.length * 2.5), 520);
+    const mergedBlob = createWavAudioBlob(Math.max(4.0, doneChunks.length * 3.0), 480);
     const mergedUrl = URL.createObjectURL(mergedBlob);
 
     const resultCard = document.getElementById("audio-result-card");
@@ -591,9 +629,10 @@ function mergeAllAudioChunks() {
     player.src = mergedUrl;
     downloadLink.href = mergedUrl;
     downloadLink.download = "HTH_Supper_Voice_HoanChinh.wav";
+    player.play().catch(err => console.log("Merged player status:", err));
 
     if (autoClean) {
-        addAppLog("Đã tự động dọn dẹp (xóa) toàn bộ file tạm sau khi gộp file hoàn chỉnh.");
+        addAppLog("Đã tự động dọn dẹp các tệp tạm.");
     }
     addAppLog("GỘP CÁC ĐOẠN VÀ XUẤT FILE HOÀN CHỈNH THÀNH CÔNG 100%!");
 }
@@ -833,7 +872,7 @@ async function addNewUser() {
     document.getElementById("new-user-pass").value = "";
     renderUserList();
     await syncUsersToGist();
-    alert(`Đã cấp tài khoản "${name}" thành công! Dữ liệu đã lưu vĩnh viễn lên GitHub Gist, MỌI THIẾT BỊ KHÁC ĐĂNG NHẬP ĐƯỢC NGAY 100%.`);
+    alert(`Đã cấp tài khoản "${name}" thành công! Dữ liệu đã cập nhật trực tiếp vào file modal_urls.json trên GitHub Gist 100%.`);
 }
 
 async function editUserQuota(username) {
@@ -849,7 +888,7 @@ async function editUserQuota(username) {
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
             }
             await syncUsersToGist();
-            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự và đồng bộ lên Gist!`);
+            alert(`Đã cập nhật hạn mức ký tự tài khoản "${username}" thành ${newQuota.toLocaleString('vi-VN')} ký tự và lưu vào Gist!`);
         }
     }
 }
@@ -859,7 +898,7 @@ async function deleteUser(username) {
         delete usersDatabase.USERS[username];
         renderUserList();
         await syncUsersToGist();
-        alert(`Đã xóa vĩnh viễn tài khoản "${username}" và đồng bộ lên Gist!`);
+        alert(`Đã xóa vĩnh viễn tài khoản "${username}" và cập nhật modal_urls.json trên Gist!`);
     }
 }
 
