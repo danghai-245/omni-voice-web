@@ -1,7 +1,7 @@
 const GITHUB_VOICE_REPO = "danghai-245/voice_11labs";
 
-// BỘ LƯU TRỮ DỮ LIỆU CLOUD REALTIME CHUẨN XÁC 100% CHỐNG LỖI TOKEN GITHUB
-const CLOUD_STORAGE_API = "https://api.jsonbin.io/v3/b/66bc7185ad19ca34f89816e8";
+// BỘ LƯU TRỮ DỮ LIỆU CLOUD REALTIME KHO CÔNG KHAI 100% TRUY CẬP TRỰC TIẾP
+const CLOUD_STORAGE_API = "https://api.npoint.io/e90fa2d2a45053258fa7";
 const GITHUB_GIST_API_URL = "https://api.github.com/gists/38bd9e7788def62592741f519581bde0";
 
 const CLEAN_B64_GIST_TOKEN = "Z2l0aHViX3BhdF8xMUJLRU9UTkkwSEpjVm9tS0ZnZDBYX0p1cW9KYVk5cHlyUnd2WlVuZWtlaEpXbGl3QnZsbElKS29jVzZnOXJrcklRVEVCSUlOU3RNVVRKYmE=";
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadServerConfigFromGist();
     loadGitHubVoices();
     onAiEngineChange();
-    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối Cloud Realtime Database).");
+    addAppLog("Cấu hình hệ thống HTH Supper Voice Vip sẵn sàng (Đã kết nối Cloud Realtime Public).");
 });
 
 // XỬ LÝ CHUYỂN ĐỔI 2 AI ENGINE VÀ THAY ĐỔI GIAO DIỆN & BIỂU CẢM THEO CODE TOOL EXE
@@ -137,29 +137,28 @@ function saveGistToken() {
     addAppLog("Đã lưu GitHub Personal Access Token.");
 }
 
-// NẠP CẤU HÌNH TÀI KHOẢN TỰ ĐỘNG REALTIME TỪ CLOUD CỰC NHANH (SONG SONG GIST)
+// NẠP CẤU HÌNH TÀI KHOẢN TỰ ĐỘNG REALTIME TỪ CLOUD NPOINT CÔNG KHAI CỰC NHANH
 async function loadServerConfigFromGist() {
     let loadedSuccess = false;
 
-    // 1. Thử nạp từ Cloud Storage API (Realtime Cloud 50ms)
+    // 1. Nạp từ Cloud Storage API (npoint.io)
     try {
-        const resp = await fetch(CLOUD_STORAGE_API + "/latest?t=" + Date.now());
+        const resp = await fetch(CLOUD_STORAGE_API + "?t=" + Date.now());
         if (resp.ok) {
             const result = await resp.json();
-            const record = result.record || result;
-            if (record && record.users) {
-                usersDatabase.USERS = record.users;
-                if (record.gpu_urls) modalGpuUrls = record.gpu_urls;
+            if (result && result.users) {
+                usersDatabase.USERS = result.users;
+                if (result.gpu_urls) modalGpuUrls = result.gpu_urls;
                 saveLocalUserCache();
                 loadedSuccess = true;
-                console.log("Đồng bộ thành công từ Cloud Realtime Database:", usersDatabase.USERS);
+                console.log("Đồng bộ thành công từ Cloud Realtime Database (npoint):", usersDatabase.USERS);
             }
         }
     } catch (e) {
-        console.warn("Lỗi nạp từ Cloud Storage, chuyển sang đọc Gist:", e);
+        console.warn("Lỗi nạp từ Cloud Storage npoint:", e);
     }
 
-    // 2. Dự phòng nạp từ Gist nếu Cloud Storage chưa có
+    // 2. Dự phòng nạp từ Gist nếu chưa có
     if (!loadedSuccess) {
         try {
             const resp = await fetch(GITHUB_GIST_API_URL + "?t=" + Date.now());
@@ -182,10 +181,10 @@ async function loadServerConfigFromGist() {
     }
 }
 
-// ĐỒNG BỘ ĐẨY DỮ LIỆU TÀI KHOẢN REALTIME LÊN CLOUD + GITHUB GIST
+// ĐỒNG BỘ ĐẨY DỮ LIỆU TÀI KHOẢN REALTIME LÊN CLOUD CÔNG KHAI 100%
 async function syncUsersToGist() {
     saveLocalUserCache();
-    addAppLog("Đang đồng bộ dữ liệu tài khoản REALTIME lên Cloud...");
+    addAppLog("Đang đồng bộ dữ liệu tài khoản REALTIME lên Đám mây công khai...");
 
     const payload = {
         updated_at: new Date().toISOString(),
@@ -193,13 +192,12 @@ async function syncUsersToGist() {
         users: usersDatabase.USERS
     };
 
-    // 1. Đẩy Realtime lên Cloud Storage API (100% nhận tức thì trên mọi thiết bị)
+    // 1. Đẩy Realtime lên npoint.io (Public REST API - Không bao giờ cần token)
     try {
         const cloudResp = await fetch(CLOUD_STORAGE_API, {
-            method: "PUT",
+            method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "X-Master-Key": "$2a$10$8wF9QyZ7J5g2J1rY7gZ7g.Yg7g7g7g7g7g7g7g7g7g7g7g7g7g7g7"
+                "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
         });
