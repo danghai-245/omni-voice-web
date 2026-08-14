@@ -898,8 +898,10 @@ function renderVoiceBrowserList() {
         return;
     }
 
+    const currentPlayingName = window.activePlayingVoiceName || "";
+
     container.innerHTML = filtered.map(v => {
-        const isPlaying = activePlayingVoiceName === v.name;
+        const isPlaying = currentPlayingName === v.name;
         return `
             <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid ${isPlaying ? '#00E5FF' : 'rgba(255,255,255,0.08)'}; padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                 <div style="flex: 1; overflow: hidden;">
@@ -932,10 +934,10 @@ function playDirectVoiceSample(voiceName) {
         return;
     }
 
-    if (activeModalVoiceAudio && activePlayingVoiceName === voiceName) {
+    if (activeModalVoiceAudio && window.activePlayingVoiceName === voiceName) {
         activeModalVoiceAudio.pause();
         activeModalVoiceAudio = null;
-        activePlayingVoiceName = "";
+        window.activePlayingVoiceName = "";
         renderVoiceBrowserList();
         return;
     }
@@ -946,7 +948,7 @@ function playDirectVoiceSample(voiceName) {
 
     stopPlaying();
 
-    activePlayingVoiceName = voiceName;
+    window.activePlayingVoiceName = voiceName;
     renderVoiceBrowserList();
 
     activeModalVoiceAudio = new Audio(matchedVoice.downloadUrl);
@@ -954,15 +956,37 @@ function playDirectVoiceSample(voiceName) {
         showToast("Đang Phát Voice Mẫu", `Đang nghe thử: ${voiceName}`, "info");
     }).catch(err => {
         console.error("Lỗi phát voice:", err);
-        activePlayingVoiceName = "";
+        window.activePlayingVoiceName = "";
         renderVoiceBrowserList();
     });
 
     activeModalVoiceAudio.onended = () => {
         activeModalVoiceAudio = null;
-        activePlayingVoiceName = "";
+        window.activePlayingVoiceName = "";
         renderVoiceBrowserList();
     };
+}
+
+function openVoiceBrowserModal() {
+    const modal = document.getElementById("voice-browser-modal");
+    if (modal) {
+        modal.style.display = "flex";
+        modal.classList.remove("hidden");
+        renderVoiceBrowserList();
+    }
+}
+
+function closeVoiceBrowserModal() {
+    const modal = document.getElementById("voice-browser-modal");
+    if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+    }
+    if (activeModalVoiceAudio) {
+        activeModalVoiceAudio.pause();
+        activeModalVoiceAudio = null;
+        window.activePlayingVoiceName = "";
+    }
 }
 
 function selectVoiceFromBrowserModal(voiceName) {
