@@ -866,7 +866,7 @@ function applyFilters() {
     });
 
     const combo = document.getElementById("select-voice");
-    combo.innerHTML = filtered.map(v => `<option value="${v.name}">${v.name}</option>`).join("");
+    combo.innerHTML = filtered.map(v => `<option value="${v.name}">▶ ${v.name}</option>`).join("");
 }
 
 function searchVoiceId() {
@@ -891,6 +891,9 @@ function onVoiceSelectionChange() {
     const textEl = document.getElementById("text-preview-voice");
     if (iconEl) iconEl.className = "fa-solid fa-volume-high";
     if (textEl) textEl.innerText = "Nghe Thử";
+
+    // Tự động kích hoạt nghe thử mẫu giọng ngay khi người dùng chọn giọng mới
+    playVoiceSample();
 }
 
 function playVoiceSample() {
@@ -942,6 +945,122 @@ function playVoiceSample() {
         if (textEl) textEl.innerText = "Nghe Thử";
         addAppLog(`Đã phát xong giọng mẫu: ${matchedVoice.name}.`);
     };
+}
+
+let activeModalVoiceAudio = null;
+let activePlayingVoiceName = "";
+
+function openVoiceBrowserModal() {
+    const modal = document.getElementById("voice-browser-modal");
+    if (modal) {
+        modal.style.display = "flex";
+        modal.classList.remove("hidden");
+        renderVoiceBrowserList();
+    }
+}
+
+function closeVoiceBrowserModal() {
+    const modal = document.getElementById("voice-browser-modal");
+    if (modal) {
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+    }
+    if (activeModalVoiceAudio) {
+        activeModalVoiceAudio.pause();
+        activeModalVoiceAudio = null;
+        activePlayingVoiceName = "";
+    }
+}
+
+function renderVoiceBrowserList() {
+    const container = document.getElementById("voice-browser-list-container");
+    const keyword = (document.getElementById("voice-modal-search-input")?.value || "").trim().toLowerCase();
+    if (!container) return;
+
+    const filtered = allVoiceMetadata.filter(v => {
+        if (!keyword) return true;
+        return v.name.toLowerCase().includes(keyword) || v.lang.toLowerCase().includes(keyword) || v.gender.toLowerCase().includes(keyword) || v.category.toLowerCase().includes(keyword);
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #94A3B8; padding: 20px;">Không tìm thấy giọng đọc phù hợp với từ khóa "${keyword}".</div>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(v => {
+        const isPlaying = activePlayingVoiceName === v.name;
+        return `
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${isPlaying ? '#00E5FF' : 'rgba(255,255,255,0.08)'}; padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="flex: 1; overflow: hidden;">
+                    <div style="font-weight: 700; color: #F8FAFC; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${v.name}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 2px;">
+                        <span style="color: #00E5FF;">${v.lang}</span> • <span>${v.gender}</span> • <span>${v.category}</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" onclick="playDirectVoiceSample('${v.name.replace(/'/g, "\\'")}')" style="background: ${isPlaying ? '#EF4444' : 'linear-gradient(135deg, #7C4DFF, #00E5FF)'}; border: none; color: #FFF; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                        <i class="fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}" style="${isPlaying ? '' : 'margin-left: 2px;'}"></i>
+                    </button>
+
+                    <button type="button" onclick="selectVoiceFromBrowserModal('${v.name.replace(/'/g, "\\'")}')" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10B981; color: #10B981; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+                        Chọn
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function playDirectVoiceSample(voiceName) {
+    const matchedVoice = allVoiceMetadata.find(v => v.name === voiceName);
+    if (!matchedVoice || !matchedVoice.downloadUrl) {
+        showToast("Không Thể Nghe", `Không tìm thấy tệp nghe thử của giọng: ${voiceName}`, "error");
+        return;
+    }
+
+    if (activeModalVoiceAudio && activePlayingVoiceName === voiceName) {
+        activeModalVoiceAudio.pause();
+        activeModalVoiceAudio = null;
+        activePlayingVoiceName = "";
+        renderVoiceBrowserList();
+        return;
+    }
+
+    if (activeModalVoiceAudio) {
+        activeModalVoiceAudio.pause();
+    }
+
+    stopPlaying();
+
+    activePlayingVoiceName = voiceName;
+    renderVoiceBrowserList();
+
+    activeModalVoiceAudio = new Audio(matchedVoice.downloadUrl);
+    activeModalVoiceAudio.play().then(() => {
+        showToast("Đang Phát Voice Mẫu", `Đang nghe thử: ${voiceName}`, "info");
+    }).catch(err => {
+        console.error("Lỗi phát voice:", err);
+        activePlayingVoiceName = "";
+        renderVoiceBrowserList();
+    });
+
+    activeModalVoiceAudio.onended = () => {
+        activeModalVoiceAudio = null;
+        activePlayingVoiceName = "";
+        renderVoiceBrowserList();
+    };
+}
+
+function selectVoiceFromBrowserModal(voiceName) {
+    const combo = document.getElementById("select-voice");
+    if (combo) {
+        combo.value = voiceName;
+    }
+    showToast("Đã Chọn Giọng", `Đã thiết lập giọng đọc chính: ${voiceName}`, "success");
+    closeVoiceBrowserModal();
 }
 
 function insertEmotionTag(tag) {
@@ -1474,3 +1593,8 @@ window.scanModalGpuStatus = scanModalGpuStatus;
 window.generateAudio = generateAudio;
 window.playVoiceSample = playVoiceSample;
 window.onVoiceSelectionChange = onVoiceSelectionChange;
+window.openVoiceBrowserModal = openVoiceBrowserModal;
+window.closeVoiceBrowserModal = closeVoiceBrowserModal;
+window.renderVoiceBrowserList = renderVoiceBrowserList;
+window.playDirectVoiceSample = playDirectVoiceSample;
+window.selectVoiceFromBrowserModal = selectVoiceFromBrowserModal;

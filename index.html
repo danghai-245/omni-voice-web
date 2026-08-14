@@ -205,7 +205,12 @@
                         <button class="btn-icon" onclick="searchVoiceId()"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
 
-                    <label for="select-voice" style="margin-top: 10px; display: block;"><strong>Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</strong></label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <label for="select-voice"><strong>Chọn Giọng Đọc Mẫu (700+ Giọng VIP):</strong></label>
+                        <button type="button" onclick="openVoiceBrowserModal()" style="background: rgba(0, 229, 255, 0.15); border: 1px solid #00E5FF; color: #00E5FF; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; transition: all 0.2s;">
+                            <i class="fa-solid fa-list-ul"></i> Bảng Duyệt VIP
+                        </button>
+                    </div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
                         <select id="select-voice" onchange="onVoiceSelectionChange()" style="flex: 1;">
                             <option>Đang nạp danh sách giọng đọc...</option>
@@ -532,6 +537,22 @@
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
                 <button class="btn-import-file" onclick="closeEditQuotaModal()" style="padding: 9px 18px; background: rgba(255,255,255,0.08); color: #CBD5E1;">Hủy</button>
                 <button onclick="submitEditUserQuotaModal()" class="btn-import-file" style="padding: 9px 22px; background: linear-gradient(135deg, #10B981, #059669); color: #FFF; font-weight: 700; border: none; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">Lưu Thay Đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DUYỆT BẢNG GIỌNG ĐỌC CÓ NÚT PLAY TRỰC TIẾP TỪNG VOICE -->
+    <div id="voice-browser-modal" class="modal-overlay hidden" style="display: none;">
+        <div class="modal-card" style="max-width: 820px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; border-color: rgba(0, 229, 255, 0.4);">
+            <button class="modal-close" onclick="closeVoiceBrowserModal()">&times;</button>
+            <h3 style="color: #00E5FF; margin-bottom: 12px;"><i class="fa-solid fa-headphones"></i> Bảng Duyệt VIP 700+ Giọng Đọc (Có Nút ▶ Play Nghe Ngay)</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="voice-modal-search-input" oninput="renderVoiceBrowserList()" placeholder="🔍 Tìm nhanh giọng đọc theo tên, thể loại, giới tính, ngôn ngữ..." style="width: 100%; padding: 10px 16px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.95rem;">
+            </div>
+
+            <div id="voice-browser-list-container" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 10px; padding-right: 4px; max-height: 60vh;">
+                <!-- JS Render Danh Sách Voice Có Nút Play Trực Tiếp -->
             </div>
         </div>
     </div>
