@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("hero-section")?.classList.remove("hidden");
     document.getElementById("nav-links")?.classList.remove("hidden");
     document.getElementById("btn-login-trigger")?.classList.remove("hidden");
-    document.getElementById("btn-studio-trigger")?.classList.remove("hidden");
+    document.getElementById("btn-studio-trigger")?.classList.add("hidden");
 
     document.getElementById("studio-section")?.classList.add("hidden");
     document.getElementById("user-badge")?.classList.add("hidden");
@@ -801,8 +801,7 @@ function insertEmotionTag(tag) {
 function openAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
-        modal.classList.remove("hidden");
-        modal.style.cssText = "display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 999999 !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.85) !important;";
+        modal.style.display = "flex";
         setTimeout(() => {
             const usernameInput = document.getElementById("auth-username");
             if (usernameInput) usernameInput.focus();
@@ -813,8 +812,7 @@ function openAuthModal() {
 function closeAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (modal) {
-        modal.classList.add("hidden");
-        modal.style.cssText = "display: none !important; opacity: 0 !important; visibility: hidden !important;";
+        modal.style.display = "none";
     }
 }
 

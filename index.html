@@ -35,6 +35,27 @@
         <button class="btn-login" id="btn-login-trigger" onclick="openAuthModal(); return false;"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
     </header>
 
+    <!-- MODAL ĐĂNG NHẬP (ƯU TIÊN VỊ TRÍ TOP HÀNG ĐẦU DOM CHỐNG CHE PHỦ) -->
+    <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); backdrop-filter: blur(16px); z-index: 9999999; justify-content: center; align-items: center; padding: 16px;">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+            <h3><i class="fa-solid fa-lock"></i> Đăng Nhập HTH Supper Voice</h3>
+            <p style="color: #94A3B8; font-size: 0.88rem; margin: 8px 0 16px 0;">Nhập Tên tài khoản và Mật khẩu để trải nghiệm đầy đủ tính năng tạo voice.</p>
+            
+            <div class="form-group">
+                <label for="auth-username">Tên tài khoản:</label>
+                <input type="text" id="auth-username" placeholder="Nhập tên tài khoản..." onkeydown="if(event.key==='Enter') submitAuth()">
+            </div>
+            
+            <div class="form-group">
+                <label for="auth-password">Mật khẩu:</label>
+                <input type="password" id="auth-password" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter') submitAuth()">
+            </div>
+
+            <button class="btn-accent btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> ĐĂNG NHẬP NGAY</button>
+        </div>
+    </div>
+
     <!-- TRANG GIỚI THIỆU (LANDING PAGE) -->
     <main id="hero-section" class="hero">
         <div class="hero-content">
@@ -391,27 +412,6 @@
             </div>
         </div>
     </div> <!-- KẾT THÚC CẢ TRANG STUDIO (STUDIO-SECTION) -->
-
-    <!-- MODAL ĐĂNG NHẬP -->
-    <div id="auth-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-            <button class="modal-close" onclick="closeAuthModal()">&times;</button>
-            <h3><i class="fa-solid fa-lock"></i> Đăng Nhập HTH Supper Voice</h3>
-            <p style="color: #94A3B8; font-size: 0.88rem; margin: 8px 0 16px 0;">Nhập Tên tài khoản và Mật khẩu để trải nghiệm đầy đủ tính năng tạo voice.</p>
-            
-            <div class="form-group">
-                <label for="auth-username">Tên tài khoản:</label>
-                <input type="text" id="auth-username" placeholder="Nhập tên tài khoản..." onkeydown="if(event.key==='Enter') submitAuth()">
-            </div>
-            
-            <div class="form-group">
-                <label for="auth-password">Mật khẩu:</label>
-                <input type="password" id="auth-password" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter') submitAuth()">
-            </div>
-
-            <button class="btn-accent btn-block" onclick="submitAuth()"><i class="fa-solid fa-key"></i> ĐĂNG NHẬP NGAY</button>
-        </div>
-    </div>
 
     <!-- MODAL BẢNG QUẢN LÝ USER ADMIN MANAGER TÍCH HỢP GITHUB TOKEN VĨNH VIỄN -->
     <div id="admin-modal" class="modal-overlay hidden">
