@@ -803,11 +803,15 @@ async function submitAuth() {
     const passInput = document.getElementById("auth-password").value.trim();
     
     if (!usernameInput || !passInput) {
-        alert("Vui lòng nhập đầy đủ Tên tài khoản và Mật khẩu!");
+        showToast("Thiếu Thông Tin", "Vui lòng nhập Tên tài khoản và Mật khẩu!", "error");
         return;
     }
 
-    await loadServerConfigFromGist();
+    try {
+        await loadServerConfigFromGist();
+    } catch (e) {
+        console.warn("Không nạp được từ Supabase, dùng cache local:", e);
+    }
 
     const lowerInputName = usernameInput.toLowerCase();
     let foundUsername = null;
@@ -825,9 +829,10 @@ async function submitAuth() {
 
         closeAuthModal();
         showStudioView();
+        showToast("Đăng Nhập Thành Công", `Chào mừng ${foundUsername} (${foundAcc.role})!`, "success");
         addAppLog(`Tài khoản "${foundUsername}" đăng nhập thành công.`);
     } else {
-        alert("Tên tài khoản hoặc mật khẩu không chính xác!");
+        showToast("Đăng Nhập Thất Bại", "Tên tài khoản hoặc mật khẩu không chính xác!", "error");
     }
 }
 
@@ -841,10 +846,19 @@ function showStudioView() {
     document.getElementById("user-name-display").innerHTML = `<i class="fa-solid fa-user-check"></i> ${currentUser.username} (${currentUser.role})`;
     document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
 
-    if (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin")) {
-        document.getElementById("btn-admin-manage").classList.remove("hidden");
+    const isAdmin = currentUser && (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin"));
+
+    // CHỈ HIỂN THỊ NÚT QUẢN LÝ USER VÀ TAB GIÁM SÁT MODAL GPU CHO TÀI KHOẢN ADMIN VIP
+    const btnAdminManage = document.getElementById("btn-admin-manage");
+    const tabBtnDashboard = document.getElementById("tab-btn-modal-dashboard");
+
+    if (isAdmin) {
+        if (btnAdminManage) btnAdminManage.classList.remove("hidden");
+        if (tabBtnDashboard) tabBtnDashboard.classList.remove("hidden");
     } else {
-        document.getElementById("btn-admin-manage").classList.add("hidden");
+        if (btnAdminManage) btnAdminManage.classList.add("hidden");
+        if (tabBtnDashboard) tabBtnDashboard.classList.add("hidden");
+        switchStudioTab("voice");
     }
 
     document.getElementById("studio-section").classList.remove("hidden");
@@ -1094,6 +1108,13 @@ let dashCountdown = 30;
 let dashTimerInterval = null;
 
 function switchStudioTab(tabName) {
+    const isAdmin = currentUser && (currentUser.role.includes("Admin") || currentUser.username.toLowerCase().includes("admin"));
+
+    if (tabName === "dashboard" && !isAdmin) {
+        showToast("Quyền Hạn Hạn Chế", "Tab Giám Sát Realtime GPU chỉ dành riêng cho Tài Khoản Admin VIP!", "warning");
+        return;
+    }
+
     const btnVoice = document.getElementById("tab-btn-studio");
     const btnDash = document.getElementById("tab-btn-modal-dashboard");
     const contentVoice = document.getElementById("tab-content-voice-studio");
