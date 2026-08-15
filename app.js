@@ -931,17 +931,53 @@ function getRandomGpuUrl() {
 
 async function loadGitHubVoices() {
     try {
-        const resp = await fetch(`https://api.github.com/repos/${GITHUB_VOICE_REPO}/contents/`);
-        if (!resp.ok) return;
-        const files = await resp.json();
+        let txtVoices = [];
         
-        allVoiceMetadata = [];
-        files.forEach(file => {
-            if (file.name.match(/\.(mp3|wav|m4a|flac)$/i)) {
-                const meta = parseVoiceInfo(file.name, file.download_url);
-                allVoiceMetadata.push(meta);
+        // 1. Tải file thông tin mô tả thong_tin_giong_doc.txt từ GitHub
+        try {
+            const txtResp = await fetch(`https://raw.githubusercontent.com/${GITHUB_VOICE_REPO}/main/thong_tin_giong_doc.txt`);
+            if (txtResp.ok) {
+                const txtContent = await txtResp.text();
+                txtVoices = parseVoiceTxt(txtContent);
             }
-        });
+        } catch (errTxt) {
+            console.warn("Không thể tải thong_tin_giong_doc.txt:", errTxt);
+        }
+
+        // 2. Tải danh sách file media trực tiếp từ API GitHub
+        let apiFiles = [];
+        try {
+            const apiResp = await fetch(`https://api.github.com/repos/${GITHUB_VOICE_REPO}/contents/`);
+            if (apiResp.ok) {
+                apiFiles = await apiResp.json();
+            }
+        } catch (errApi) {
+            console.warn("Không thể tải API GitHub contents:", errApi);
+        }
+
+        allVoiceMetadata = [];
+
+        if (txtVoices.length > 0) {
+            // Sử dụng dữ liệu phong phú từ file thong_tin_giong_doc.txt
+            txtVoices.forEach(tv => {
+                // Khớp downloadUrl nếu có file từ GitHub API
+                if (apiFiles.length > 0) {
+                    const matchedFile = apiFiles.find(f => f.name === tv.filename || (tv.voiceId && f.name.includes(tv.voiceId)));
+                    if (matchedFile && matchedFile.download_url) {
+                        tv.downloadUrl = matchedFile.download_url;
+                    }
+                }
+                allVoiceMetadata.push(tv);
+            });
+        } else if (apiFiles.length > 0) {
+            // Dự phòng trường hợp không có file .txt
+            apiFiles.forEach(file => {
+                if (file.name.match(/\.(mp3|wav|m4a|flac)$/i)) {
+                    const meta = parseVoiceInfo(file.name, file.download_url);
+                    allVoiceMetadata.push(meta);
+                }
+            });
+        }
 
         const countStr = `${allVoiceMetadata.length}+`;
         document.getElementById("stat-voice-count").innerText = countStr;
@@ -961,11 +997,71 @@ async function loadGitHubVoices() {
             }
         }
 
-        addAppLog(`Đã nạp xong ${countStr} giọng đọc VIP có sẵn thành công!`);
+        addAppLog(`Đã nạp thành công ${countStr} giọng đọc VIP cùng chi tiết ngôn ngữ từ GitHub!`);
     } catch (e) {
         console.error("Lỗi đồng bộ GitHub:", e);
         addAppLog("Lỗi nạp danh sách giọng đọc VIP: " + e.message);
     }
+}
+
+function parseVoiceTxt(txtContent) {
+    if (!txtContent) return [];
+    
+    const blocks = txtContent.split(/-{30,}/);
+    const parsedVoices = [];
+
+    blocks.forEach(block => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) return;
+
+        let filename = "";
+        let name = "";
+        let voiceId = "";
+        let gender = "Tất cả";
+        let age = "Tất cả";
+        let category = "Tất cả";
+        let isVip = false;
+        let supportedLanguages = [];
+
+        lines.forEach(line => {
+            if (line.includes("Tên file:")) {
+                filename = line.split("Tên file:")[1].trim();
+            } else if (line.includes("- Tên giọng:")) {
+                name = line.split("- Tên giọng:")[1].trim();
+            } else if (line.includes("- Voice ID:")) {
+                voiceId = line.split("- Voice ID:")[1].trim();
+            } else if (line.includes("- Giới tính:")) {
+                const parts = line.split('|').map(p => p.trim());
+                parts.forEach(p => {
+                    if (p.includes("Giới tính:")) gender = p.split("Giới tính:")[1].trim();
+                    if (p.includes("Độ tuổi:")) age = p.split("Độ tuổi:")[1].trim();
+                    if (p.includes("Phân loại:")) category = p.split("Phân loại:")[1].trim();
+                    if (p.includes("VIP:")) isVip = p.includes("Có");
+                });
+            } else if (line.startsWith("-> ")) {
+                const langsStr = line.substring(3).trim();
+                supportedLanguages = langsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            }
+        });
+
+        if (filename || name || voiceId) {
+            if (!name) name = filename.replace(/\.[^/.]+$/, "");
+            parsedVoices.push({
+                filename,
+                name,
+                voiceId,
+                gender,
+                age,
+                category,
+                isVip,
+                supportedLanguages,
+                lang: supportedLanguages.length > 0 ? (supportedLanguages.length > 1 ? `Đa ngôn ngữ (${supportedLanguages.length})` : supportedLanguages[0]) : "Đa ngôn ngữ",
+                downloadUrl: `https://raw.githubusercontent.com/${GITHUB_VOICE_REPO}/main/${encodeURIComponent(filename)}`
+            });
+        }
+    });
+
+    return parsedVoices;
 }
 
 function parseVoiceInfo(filename, downloadUrl) {
@@ -982,17 +1078,28 @@ function parseVoiceInfo(filename, downloadUrl) {
     if (parts.length > 5) displayName = parts.slice(0, -5).join(" - ");
     else if (parts.length > 4) displayName = parts.slice(0, -4).join(" - ");
     
-    return { name: displayName, raw: baseName, voiceId, lang, gender, age, category, downloadUrl };
+    return { name: displayName, raw: baseName, voiceId, lang, gender, age, category, supportedLanguages: [lang], downloadUrl };
 }
 
 function populateFilters() {
-    const langs = [...new Set(allVoiceMetadata.map(v => v.lang))].sort();
+    const allLangsSet = new Set();
+    allVoiceMetadata.forEach(v => {
+        if (v.supportedLanguages && v.supportedLanguages.length > 0) {
+            v.supportedLanguages.forEach(l => allLangsSet.add(l));
+        } else if (v.lang) {
+            allLangsSet.add(v.lang);
+        }
+    });
+
+    const langs = [...allLangsSet].sort();
     const genders = [...new Set(allVoiceMetadata.map(v => v.gender))].sort();
+    const ages = [...new Set(allVoiceMetadata.map(v => v.age))].sort();
     const cats = [...new Set(allVoiceMetadata.map(v => v.category))].sort();
 
     fillCombo("modal-filter-lang", ["Ngôn ngữ: Tất cả", ...langs]);
     fillCombo("modal-filter-gender", ["Giới tính: Tất cả", ...genders]);
-    fillCombo("modal-filter-cat", ["Thể loại: Tất cả", ...cats]);
+    fillCombo("modal-filter-age", ["Độ tuổi: Tất cả", ...ages]);
+    fillCombo("modal-filter-cat", ["Phân loại: Tất cả", ...cats]);
 }
 
 function fillCombo(id, values) {
@@ -1011,17 +1118,32 @@ function renderVoiceBrowserList() {
     const keyword = (document.getElementById("voice-modal-search-input")?.value || "").trim().toLowerCase();
     const selectedLang = document.getElementById("modal-filter-lang")?.value || "Tất cả";
     const selectedGender = document.getElementById("modal-filter-gender")?.value || "Tất cả";
+    const selectedAge = document.getElementById("modal-filter-age")?.value || "Tất cả";
     const selectedCat = document.getElementById("modal-filter-cat")?.value || "Tất cả";
 
     if (!container) return;
 
     const filtered = allVoiceMetadata.filter(v => {
-        if (selectedLang !== "Tất cả" && selectedLang !== "Ngôn ngữ: Tất cả" && v.lang !== selectedLang) return false;
+        if (selectedLang !== "Tất cả" && selectedLang !== "Ngôn ngữ: Tất cả") {
+            if (v.supportedLanguages && v.supportedLanguages.length > 0) {
+                if (!v.supportedLanguages.includes(selectedLang)) return false;
+            } else if (v.lang !== selectedLang) {
+                return false;
+            }
+        }
         if (selectedGender !== "Tất cả" && selectedGender !== "Giới tính: Tất cả" && v.gender !== selectedGender) return false;
-        if (selectedCat !== "Tất cả" && selectedCat !== "Thể loại: Tất cả" && v.category !== selectedCat) return false;
+        if (selectedAge !== "Tất cả" && selectedAge !== "Độ tuổi: Tất cả" && v.age !== selectedAge) return false;
+        if (selectedCat !== "Tất cả" && selectedCat !== "Phân loại: Tất cả" && v.category !== selectedCat) return false;
         
         if (!keyword) return true;
-        return v.name.toLowerCase().includes(keyword) || v.voiceId.toLowerCase().includes(keyword) || v.lang.toLowerCase().includes(keyword) || v.gender.toLowerCase().includes(keyword) || v.category.toLowerCase().includes(keyword);
+        const matchesName = v.name.toLowerCase().includes(keyword);
+        const matchesId = v.voiceId.toLowerCase().includes(keyword);
+        const matchesLangs = v.supportedLanguages ? v.supportedLanguages.some(l => l.toLowerCase().includes(keyword)) : false;
+        const matchesGender = v.gender.toLowerCase().includes(keyword);
+        const matchesAge = v.age.toLowerCase().includes(keyword);
+        const matchesCat = v.category.toLowerCase().includes(keyword);
+
+        return matchesName || matchesId || matchesLangs || matchesGender || matchesAge || matchesCat;
     });
 
     if (filtered.length === 0) {
@@ -1033,14 +1155,25 @@ function renderVoiceBrowserList() {
 
     container.innerHTML = filtered.map(v => {
         const isPlaying = currentPlayingName === v.name;
+        let langDisplay = "";
+        if (v.supportedLanguages && v.supportedLanguages.length > 0) {
+            if (v.supportedLanguages.length > 3) {
+                langDisplay = `${v.supportedLanguages.slice(0, 3).join(", ")} +${v.supportedLanguages.length - 3}`;
+            } else {
+                langDisplay = v.supportedLanguages.join(", ");
+            }
+        } else {
+            langDisplay = v.lang || "Đa ngôn ngữ";
+        }
+
         return `
             <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid ${isPlaying ? '#00E5FF' : 'rgba(255,255,255,0.08)'}; padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                 <div style="flex: 1; overflow: hidden;">
                     <div style="font-weight: 700; color: #F8FAFC; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        ${v.name}
+                        ${v.name} ${v.isVip ? '<span style="font-size: 0.7rem; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 1px 6px; border-radius: 4px; font-weight: 800; margin-left: 4px;">VIP</span>' : ''}
                     </div>
-                    <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 3px;">
-                        <span style="color: #00E5FF; font-weight: 600;">${v.lang}</span> • <span>${v.gender}</span> • <span>${v.category}</span>
+                    <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span style="color: #00E5FF; font-weight: 600;" title="${v.supportedLanguages ? v.supportedLanguages.join(', ') : langDisplay}">${langDisplay}</span> • <span>${v.gender}</span> • <span>${v.age}</span> • <span>${v.category}</span>
                     </div>
                 </div>
 

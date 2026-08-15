@@ -547,7 +547,7 @@
             </h3>
             
             <!-- BỘ LỌC TÌM KIẾM ĐẦY ĐỦ TRONG MODAL -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 14px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px;">
                 <input type="text" id="voice-modal-search-input" oninput="renderVoiceBrowserList()" placeholder="🔍 Tìm tên hoặc Voice ID..." style="padding: 8px 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
                 
                 <select id="modal-filter-lang" onchange="renderVoiceBrowserList()" style="padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
@@ -558,8 +558,12 @@
                     <option value="Tất cả">Giới tính: Tất cả</option>
                 </select>
 
+                <select id="modal-filter-age" onchange="renderVoiceBrowserList()" style="padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
+                    <option value="Tất cả">Độ tuổi: Tất cả</option>
+                </select>
+
                 <select id="modal-filter-cat" onchange="renderVoiceBrowserList()" style="padding: 8px 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; color: #FFF; font-size: 0.85rem;">
-                    <option value="Tất cả">Thể loại: Tất cả</option>
+                    <option value="Tất cả">Phân loại: Tất cả</option>
                 </select>
             </div>
 
