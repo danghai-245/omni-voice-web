@@ -19,9 +19,9 @@ function getAdminDefaultToken() {
 let allVoiceMetadata = [];
 let currentUser = null;
 let modalGpuUrls = [
-    "https://hhhh01234501--vieneu-tts-serverless-vieneumodel-generate.modal.run",
-    "https://hai319959--vieneu-tts-serverless-vieneumodel-generate.modal.run",
-    "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
+    "https://hhhh01234501--omnivoice-tts-serverless-omnivoicemodel-generate.modal.run",
+    "https://hai319959--omnivoice-tts-serverless-omnivoicemodel-generate.modal.run",
+    "https://danghai30052005--omnivoice-tts-serverless-omnivoicemodel-generate.modal.run"
 ];
 
 let usersDatabase = {
@@ -179,7 +179,10 @@ async function loadServerConfigFromGist() {
         });
         if (resp.ok) {
             const data = await resp.json();
-            if (data.gpu_urls) modalGpuUrls = data.gpu_urls;
+            if (data.gpu_urls && Array.isArray(data.gpu_urls)) {
+                modalGpuUrls = data.gpu_urls.map(u => u.replace("--vieneu-tts-serverless-vieneumodel-generate", "--omnivoice-tts-serverless-omnivoicemodel-generate"));
+                localStorage.setItem("active_modal_urls", JSON.stringify(modalGpuUrls));
+            }
             if (data.users) {
                 usersDatabase.USERS = data.users;
                 saveLocalUserCache();
@@ -494,14 +497,25 @@ async function generateAllChunks() {
     updateProgressUI();
     addAppLog(`Bắt đầu tiến trình TẠO TẤT CẢ (${totalChunks} đoạn) với ${maxThreads} luồng song song...`);
 
-    // HÀNG ĐỢI ĐA LUỒNG SONG SONG 4 LUỒNG CHUẨN REALTIME
+    // 1. TIỀN NẠP CACHE GIỌNG MẪU CHỐNG NGHẼN MẠNG GITHUB ĐỒNG THỜI
+    const selectedVoiceName = document.getElementById("select-voice")?.value || "";
+    const voiceMeta = allVoiceMetadata.find(v => v.name === selectedVoiceName) || (allVoiceMetadata.length > 0 ? allVoiceMetadata[0] : null);
+    if (voiceMeta) {
+        const refAudioUrl = voiceMeta.downloadUrl || `https://raw.githubusercontent.com/${GITHUB_VOICE_REPO}/main/${encodeURIComponent(voiceMeta.filename)}`;
+        if (refAudioUrl) {
+            addAppLog(`Đang chuẩn bị cache tệp giọng mẫu "${selectedVoiceName}" cho các luồng...`);
+            await getVoiceBase64(refAudioUrl);
+        }
+    }
+
+    // HÀNG ĐỢI ĐA LUỒNG SONG SONG VỚI XOAY VÒNG MÁY CHỦ GPU PHÂN TẢI
     const queue = currentChunksList.map((_, idx) => idx);
 
-    const worker = async () => {
+    const worker = async (workerId) => {
         while (queue.length > 0) {
             const idx = queue.shift();
             if (idx !== undefined) {
-                await processSingleChunk(idx);
+                await processSingleChunk(idx, workerId);
                 completedCount++;
                 updateProgressUI();
             }
@@ -510,7 +524,9 @@ async function generateAllChunks() {
 
     const workers = [];
     for (let i = 0; i < Math.min(maxThreads, totalChunks); i++) {
-        workers.push(worker());
+        // Giãn cách nhẹ 150ms khi bật worker khởi chạy để phân luồng an toàn
+        if (i > 0) await new Promise(r => setTimeout(r, 150));
+        workers.push(worker(i));
     }
 
     await Promise.all(workers);
@@ -607,7 +623,7 @@ function writeString(view, offset, string) {
     }
 }
 
-async function processSingleChunk(idx) {
+async function processSingleChunk(idx, workerId = 0) {
     const item = currentChunksList[idx];
     if (!currentUser) { openAuthModal(); return; }
 
@@ -621,9 +637,17 @@ async function processSingleChunk(idx) {
 
     item.status = "running";
     renderChunksTable();
-    addAppLog(`Đang gửi yêu cầu đến server cho Đoạn ${item.id} (${item.text.length} ký tự)...`);
+    addAppLog(`[Luồng ${workerId + 1}] Đang gửi yêu cầu cho Đoạn ${item.id} (${item.text.length} ký tự)...`);
 
-    const gpuUrl = getRandomGpuUrl();
+    // Phân tải Round-Robin theo workerId & idx để không dồn 4 luồng vào 1 server GPU
+    let gpuUrl = "";
+    if (modalGpuUrls && modalGpuUrls.length > 0) {
+        const serverIndex = (idx + workerId) % modalGpuUrls.length;
+        gpuUrl = modalGpuUrls[serverIndex];
+    } else {
+        gpuUrl = getRandomGpuUrl();
+    }
+
     if (!gpuUrl || gpuUrl === "https://modal.com") {
         item.status = "error";
         renderChunksTable();
@@ -676,58 +700,73 @@ async function processSingleChunk(idx) {
 
         addAppLog(`Đang gửi câu lệnh đến GPU cho Đoạn ${item.id} (Giọng mẫu: "${selectedVoiceName || 'Mặc định'}", ${refAudioBase64 ? 'đã đính kèm tệp âm thanh Base64 100%' : 'dùng URL link'}): "${cleanText.substring(0, 30)}..."`);
 
-        const startTime = Date.now();
-        const response = await fetch(gpuUrl, {
-            method: "POST",
-            mode: "cors",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                text: cleanText || item.text,
-                speed: speedVal,
-                ref_text: "",
-                // ĐẦY ĐỦ CÁC THAM SỐ VÀ FILE ÂM THANH MẪU BASE64 CHO MÁY CHỦ GPU
-                voice_name: selectedVoiceName,
-                voice: selectedVoiceName,
-                voice_id: voiceId,
-                ref_audio: refAudioBase64 || refAudioUrl,
-                ref_audio_url: refAudioUrl,
-                ref_audio_base64: refAudioBase64,
-                prompt_speech: refAudioBase64,
-                prompt_audio: refAudioBase64 || refAudioUrl,
-                audio_prompt: refAudioBase64 || refAudioUrl,
-                filename: filename
-            })
-        });
+        let response = null;
+        let lastError = null;
 
-        if (response.ok) {
-            const blob = await response.blob();
-            if (blob.size > 200) {
-                item.audioUrl = URL.createObjectURL(blob);
-                item.status = "done";
-                
-                const renderDurationSec = Math.max(1.0, (Date.now() - startTime) / 1000);
-                const costUsd = Math.max(0.0015, (renderDurationSec * 0.00035) + ((cleanText || item.text).length * 0.000005));
-                trackGpuBillingUsage(gpuUrl, costUsd);
-
-                currentUser.used += item.text.length;
-                if (usersDatabase.USERS[currentUser.username]) {
-                    usersDatabase.USERS[currentUser.username].used = currentUser.used;
+        for (let retry = 0; retry < 2; retry++) {
+            try {
+                if (retry > 0) {
+                    addAppLog(`[Thử lại ${retry}/1] Đang thử kết nối tới server GPU dự phòng cho Đoạn ${item.id}...`);
+                    // Đổi server GPU dự phòng khi retry
+                    if (modalGpuUrls && modalGpuUrls.length > 1) {
+                        gpuUrl = modalGpuUrls[(idx + workerId + retry) % modalGpuUrls.length];
+                    }
+                    await new Promise(r => setTimeout(r, 600));
                 }
-                localStorage.setItem(`quota_used_${currentUser.username.toLowerCase()}`, currentUser.used);
-                
-                // Đồng bộ lên Supabase Realtime Storage để mọi máy khác đều nhận đúng số ký tự đã dùng
-                syncUsersToGist().catch(e => console.warn("Lỗi sync quota Supabase:", e));
 
-                document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
-                renderChunksTable();
-                addAppLog(`Đoạn ${item.id} tạo voice AI bằng máy chủ GPU THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB, tiêu tốn $${costUsd.toFixed(4)})`);
-                return;
+                response = await fetch(gpuUrl, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        text: cleanText || item.text,
+                        speed: speedVal,
+                        ref_text: "",
+                        voice_name: selectedVoiceName,
+                        voice: selectedVoiceName,
+                        voice_id: voiceId,
+                        ref_audio: refAudioBase64 || refAudioUrl,
+                        ref_audio_url: refAudioUrl,
+                        ref_audio_base64: refAudioBase64,
+                        prompt_speech: refAudioBase64,
+                        prompt_audio: refAudioBase64 || refAudioUrl,
+                        audio_prompt: refAudioBase64 || refAudioUrl,
+                        filename: filename
+                    })
+                });
+
+                if (response && response.ok) {
+                    const blob = await response.blob();
+                    if (blob.size > 200) {
+                        item.audioUrl = URL.createObjectURL(blob);
+                        item.status = "done";
+                        
+                        const renderDurationSec = Math.max(1.0, (Date.now() - startTime) / 1000);
+                        const costUsd = Math.max(0.0015, (renderDurationSec * 0.00035) + ((cleanText || item.text).length * 0.000005));
+                        trackGpuBillingUsage(gpuUrl, costUsd);
+
+                        currentUser.used += item.text.length;
+                        if (usersDatabase.USERS[currentUser.username]) {
+                            usersDatabase.USERS[currentUser.username].used = currentUser.used;
+                        }
+                        localStorage.setItem(`quota_used_${currentUser.username.toLowerCase()}`, currentUser.used);
+                        
+                        syncUsersToGist().catch(e => console.warn("Lỗi sync quota Supabase:", e));
+
+                        document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
+                        renderChunksTable();
+                        addAppLog(`Đoạn ${item.id} tạo voice AI bằng máy chủ GPU THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB)`);
+                        return;
+                    }
+                }
+            } catch (retryErr) {
+                lastError = retryErr;
             }
         }
         
-        throw new Error(`HTTP Status ${response.status} - Máy chủ GPU không trả về dữ liệu audio hợp lệ.`);
+        throw new Error(lastError ? lastError.message : `HTTP Status ${response ? response.status : 'Unknown'} - GPU Server bận`);
     } catch (err) {
         console.error("Lỗi gọi Serverless GPU:", err);
         item.status = "error";
@@ -1119,7 +1158,7 @@ function parseVoiceTxt(txtContent) {
                 });
             } else if (line.startsWith("-> ")) {
                 const langsStr = line.substring(3).trim();
-                supportedLanguages = langsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                supportedLanguages = langsStr.split(',').map(s => s.trim()).filter(s => s.length > 0).map(s => formatLangName(s));
             }
         });
 
@@ -1160,31 +1199,97 @@ function parseVoiceInfo(filename, downloadUrl) {
     return { name: displayName, raw: baseName, voiceId, lang, gender, age, category, supportedLanguages: [lang], downloadUrl };
 }
 
+const GLOBAL_LANG_MAP = {
+    "en": "Tiếng Anh (English)", "english": "Tiếng Anh (English)", "anh": "Tiếng Anh (English)",
+    "vi": "Tiếng Việt (Vietnamese)", "vietnamese": "Tiếng Việt (Vietnamese)", "việt": "Tiếng Việt (Vietnamese)",
+    "zh": "Tiếng Trung (Chinese)", "chinese": "Tiếng Trung (Chinese)", "trung": "Tiếng Trung (Chinese)",
+    "ja": "Tiếng Nhật (Japanese)", "japanese": "Tiếng Nhật (Japanese)", "nhật": "Tiếng Nhật (Japanese)",
+    "ko": "Tiếng Hàn (Korean)", "korean": "Tiếng Hàn (Korean)", "hàn": "Tiếng Hàn (Korean)",
+    "fr": "Tiếng Pháp (French)", "french": "Tiếng Pháp (French)", "pháp": "Tiếng Pháp (French)",
+    "de": "Tiếng Đức (German)", "german": "Tiếng Đức (German)", "đức": "Tiếng Đức (German)",
+    "es": "Tiếng Tây Ban Nha (Spanish)", "spanish": "Tiếng Tây Ban Nha (Spanish)", "tây ban nha": "Tiếng Tây Ban Nha (Spanish)",
+    "ru": "Tiếng Nga (Russian)", "russian": "Tiếng Nga (Russian)", "nga": "Tiếng Nga (Russian)",
+    "pt": "Tiếng Bồ Đào Nha (Portuguese)", "portuguese": "Tiếng Bồ Đào Nha (Portuguese)",
+    "it": "Tiếng Ý (Italian)", "italian": "Tiếng Ý (Italian)", "ý": "Tiếng Ý (Italian)",
+    "hi": "Tiếng Ấn Độ (Hindi)", "hindi": "Tiếng Ấn Độ (Hindi)", "ấn độ": "Tiếng Ấn Độ (Hindi)",
+    "ar": "Tiếng Ả Rập (Arabic)", "arabic": "Tiếng Ả Rập (Arabic)", "ả rập": "Tiếng Ả Rập (Arabic)",
+    "id": "Tiếng Indonesia", "indonesia": "Tiếng Indonesia", "indonesian": "Tiếng Indonesia",
+    "th": "Tiếng Thái (Thai)", "thai": "Tiếng Thái (Thai)", "thái": "Tiếng Thái (Thai)",
+    "tr": "Tiếng Thổ Nhĩ Kỳ (Turkish)", "thổ nhĩ kỳ": "Tiếng Thổ Nhĩ Kỳ (Turkish)", "turkish": "Tiếng Thổ Nhĩ Kỳ (Turkish)",
+    "pl": "Tiếng Ba Lan (Polish)", "polish": "Tiếng Ba Lan (Polish)", "ba lan": "Tiếng Ba Lan (Polish)",
+    "nl": "Tiếng Hà Lan (Dutch)", "hà lan": "Tiếng Hà Lan (Dutch)", "dutch": "Tiếng Hà Lan (Dutch)",
+    "cs": "Tiếng Séc (Czech)", "czech": "Tiếng Séc (Czech)", "séc": "Tiếng Séc (Czech)",
+    "el": "Tiếng Hy Lạp (Greek)", "greek": "Tiếng Hy Lạp (Greek)", "hy lạp": "Tiếng Hy Lạp (Greek)",
+    "he": "Tiếng Do Thái (Hebrew)", "hebrew": "Tiếng Do Thái (Hebrew)", "do thái": "Tiếng Do Thái (Hebrew)",
+    "ms": "Tiếng Mã Lai (Malay)", "mã lai": "Tiếng Mã Lai (Malay)", "malay": "Tiếng Mã Lai (Malay)",
+    "sv": "Tiếng Thụy Điển (Swedish)", "swedish": "Tiếng Thụy Điển (Swedish)", "thụy điển": "Tiếng Thụy Điển (Swedish)",
+    "hu": "Tiếng Hung-ga-ri (Hungarian)", "hungarian": "Tiếng Hung-ga-ri (Hungarian)", "hung-ga-ri": "Tiếng Hung-ga-ri (Hungarian)",
+    "da": "Tiếng Đan Mạch (Danish)", "danish": "Tiếng Đan Mạch (Danish)", "đan mạch": "Tiếng Đan Mạch (Danish)",
+    "fi": "Tiếng Phần Lan (Finnish)", "finnish": "Tiếng Phần Lan (Finnish)", "phần lan": "Tiếng Phần Lan (Finnish)",
+    "sk": "Tiếng Slovakia (Slovak)", "slovak": "Tiếng Slovakia (Slovak)", "slovakia": "Tiếng Slovakia (Slovak)",
+    "bg": "Tiếng Bulgaria", "bulgarian": "Tiếng Bulgaria", "bulgaria": "Tiếng Bulgaria",
+    "ro": "Tiếng Romania", "romanian": "Tiếng Romania", "romania": "Tiếng Romania",
+    "uk": "Tiếng Ukraina", "ukrainian": "Tiếng Ukraina", "ukraina": "Tiếng Ukraina",
+    "hr": "Tiếng Croatia", "croatian": "Tiếng Croatia", "croatia": "Tiếng Croatia",
+    "no": "Tiếng Na Uy (Norwegian)", "norwegian": "Tiếng Na Uy (Norwegian)", "na uy": "Tiếng Na Uy (Norwegian)",
+    "ta": "Tiếng Tamil", "tamil": "Tiếng Tamil",
+    "tagalog": "Tiếng Philippines (Tagalog)", "tl": "Tiếng Philippines (Tagalog)",
+    "multilingual": "Đa Ngôn Ngữ (Multilingual)"
+};
+
+function formatLangName(code) {
+    if (!code) return "Khác";
+    const key = code.trim().toLowerCase();
+    return GLOBAL_LANG_MAP[key] || code;
+}
+
 function populateFilters() {
-    const allLangsSet = new Set();
+    const rawLangsSet = new Set();
     allVoiceMetadata.forEach(v => {
         if (v.supportedLanguages && v.supportedLanguages.length > 0) {
-            v.supportedLanguages.forEach(l => allLangsSet.add(l));
+            v.supportedLanguages.forEach(l => rawLangsSet.add(l));
         } else if (v.lang) {
-            allLangsSet.add(v.lang);
+            rawLangsSet.add(v.lang);
         }
     });
 
-    const langs = [...allLangsSet].sort();
+    // Gom nhóm và ánh xạ tên tiếng Việt đầy đủ
+    const fullLangsSet = new Set();
+    rawLangsSet.forEach(raw => {
+        const full = formatLangName(raw);
+        fullLangsSet.add(full);
+    });
+
+    const fullLangs = [...fullLangsSet];
+    
+    // ƯU TIÊN TIẾNG ANH VÀ TIẾNG VIỆT XẾP ĐẦU DANH SÁCH
+    fullLangs.sort((a, b) => {
+        if (a.includes("Tiếng Anh")) return -1;
+        if (b.includes("Tiếng Anh")) return 1;
+        if (a.includes("Tiếng Việt")) return -1;
+        if (b.includes("Tiếng Việt")) return 1;
+        return a.localeCompare(b, 'vi');
+    });
+
     const genders = [...new Set(allVoiceMetadata.map(v => v.gender))].sort();
     const ages = [...new Set(allVoiceMetadata.map(v => v.age))].sort();
     const cats = [...new Set(allVoiceMetadata.map(v => v.category))].sort();
 
-    fillCombo("modal-filter-lang", ["Ngôn ngữ: Tất cả", ...langs]);
+    fillCombo("modal-filter-lang", ["Ngôn ngữ: Tất cả", ...fullLangs]);
     fillCombo("modal-filter-gender", ["Giới tính: Tất cả", ...genders]);
     fillCombo("modal-filter-age", ["Độ tuổi: Tất cả", ...ages]);
     fillCombo("modal-filter-cat", ["Phân loại: Tất cả", ...cats]);
 }
 
-function fillCombo(id, values) {
+function fillCombo(id, values, mapObj = null) {
     const el = document.getElementById(id);
     if (el) {
-        el.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join("");
+        el.innerHTML = values.map(v => {
+            if (v.startsWith("Ngôn ngữ:") || v.startsWith("Giới tính:") || v.startsWith("Độ tuổi:") || v.startsWith("Phân loại:")) {
+                return `<option value="Tất cả">${v}</option>`;
+            }
+            return `<option value="${v}">${v}</option>`;
+        }).join("");
     }
 }
 
@@ -1204,12 +1309,14 @@ function renderVoiceBrowserList() {
 
     const filtered = allVoiceMetadata.filter(v => {
         if (selectedLang !== "Tất cả" && selectedLang !== "Ngôn ngữ: Tất cả") {
-            if (v.supportedLanguages && v.supportedLanguages.length > 0) {
-                if (!v.supportedLanguages.includes(selectedLang)) return false;
-            } else if (v.lang !== selectedLang) {
-                return false;
-            }
+            const vLangs = (v.supportedLanguages && v.supportedLanguages.length > 0) 
+                           ? v.supportedLanguages.map(l => formatLangName(l)) 
+                           : [formatLangName(v.lang)];
+            if (!vLangs.includes(selectedLang)) return false;
         }
+        if (selectedGender !== "Tất cả" && selectedGender !== "Giới tính: Tất cả" && v.gender !== selectedGender) return false;
+        if (selectedAge !== "Tất cả" && selectedAge !== "Độ tuổi: Tất cả" && v.age !== selectedAge) return false;
+        if (selectedCat !== "Tất cả" && selectedCat !== "Phân loại: Tất cả" && v.category !== selectedCat) return false;
         if (selectedGender !== "Tất cả" && selectedGender !== "Giới tính: Tất cả" && v.gender !== selectedGender) return false;
         if (selectedAge !== "Tất cả" && selectedAge !== "Độ tuổi: Tất cả" && v.age !== selectedAge) return false;
         if (selectedCat !== "Tất cả" && selectedCat !== "Phân loại: Tất cả" && v.category !== selectedCat) return false;
@@ -1234,16 +1341,23 @@ function renderVoiceBrowserList() {
 
     container.innerHTML = filtered.map(v => {
         const isPlaying = currentPlayingName === v.name;
-        let langDisplay = "";
+        let mappedLangs = [];
         if (v.supportedLanguages && v.supportedLanguages.length > 0) {
-            if (v.supportedLanguages.length > 3) {
-                langDisplay = `${v.supportedLanguages.slice(0, 3).join(", ")} +${v.supportedLanguages.length - 3}`;
-            } else {
-                langDisplay = v.supportedLanguages.join(", ");
-            }
-        } else {
-            langDisplay = v.lang || "Đa ngôn ngữ";
+            mappedLangs = v.supportedLanguages.map(l => formatLangName(l));
+        } else if (v.lang) {
+            mappedLangs = [formatLangName(v.lang)];
         }
+
+        let langDisplay = "";
+        if (mappedLangs.length > 2) {
+            langDisplay = `${mappedLangs.slice(0, 2).join(", ")} +${mappedLangs.length - 2}`;
+        } else if (mappedLangs.length > 0) {
+            langDisplay = mappedLangs.join(", ");
+        } else {
+            langDisplay = "Đa Ngôn Ngữ";
+        }
+
+        const fullLangTooltip = mappedLangs.length > 0 ? mappedLangs.join(", ") : "Đa Ngôn Ngữ";
 
         return `
             <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid ${isPlaying ? '#00E5FF' : 'rgba(255,255,255,0.08)'}; padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
@@ -1252,7 +1366,7 @@ function renderVoiceBrowserList() {
                         ${v.name} ${v.isVip ? '<span style="font-size: 0.7rem; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 1px 6px; border-radius: 4px; font-weight: 800; margin-left: 4px;">VIP</span>' : ''}
                     </div>
                     <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <span style="color: #00E5FF; font-weight: 600;" title="${v.supportedLanguages ? v.supportedLanguages.join(', ') : langDisplay}">${langDisplay}</span> • <span>${v.gender}</span> • <span>${v.age}</span> • <span>${v.category}</span>
+                        <span style="color: #00E5FF; font-weight: 600;" title="${fullLangTooltip}">${langDisplay}</span> • <span>${v.gender}</span> • <span>${v.age}</span> • <span>${v.category}</span>
                     </div>
                 </div>
 
@@ -1315,6 +1429,7 @@ function openVoiceBrowserModal() {
     if (modal) {
         modal.style.display = "flex";
         modal.classList.remove("hidden");
+        populateFilters();
         renderVoiceBrowserList();
     }
 }
@@ -1536,6 +1651,36 @@ function closeAdminModal() {
     document.getElementById("admin-modal").classList.add("hidden");
 }
 
+function copyUserAccountInfo(username, password) {
+    const textToCopy = `Tài khoản: ${username}\nMật khẩu: ${password}`;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showToast("Đã Sao Chép", `Đã copy Tài khoản: "${username}" và Mật khẩu vào Bộ nhớ tạm!`, "success");
+        }).catch(() => {
+            fallbackCopyTextToClipboard(textToCopy, username);
+        });
+    } else {
+        fallbackCopyTextToClipboard(textToCopy, username);
+    }
+}
+
+function fallbackCopyTextToClipboard(text, username) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showToast("Đã Sao Chép", `Đã copy Tài khoản: "${username}" và Mật khẩu vào Bộ nhớ tạm!`, "success");
+    } catch (err) {
+        showToast("Lỗi Sao Chép", "Không thể chép vào Clipboard thiết bị!", "error");
+    }
+    document.body.removeChild(textArea);
+}
+
 function renderUserList() {
     const tbody = document.getElementById("user-table-body");
     tbody.innerHTML = "";
@@ -1549,11 +1694,26 @@ function renderUserList() {
         const passDisplay = isAdmin ? `<code>${u.password}</code>` : '<code>••••••••</code>';
 
         tr.innerHTML = `
-            <td><strong>${username}</strong></td>
-            <td>${passDisplay}</td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <strong>${username}</strong>
+                    <button type="button" onclick="copyUserAccountInfo('${username}', '${u.password}')" title="Copy Tài khoản & Mật khẩu" style="background: rgba(0, 229, 255, 0.15); border: 1px solid rgba(0, 229, 255, 0.4); color: #00E5FF; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+            </td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    ${passDisplay}
+                    <button type="button" onclick="copyUserAccountInfo('${username}', '${u.password}')" title="Copy Cặp TK/MK" style="background: rgba(124, 77, 255, 0.15); border: 1px solid rgba(124, 77, 255, 0.4); color: #B388FF; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                        <i class="fa-solid fa-key"></i> Copy MK
+                    </button>
+                </div>
+            </td>
             <td>${u.used.toLocaleString('vi-VN')} / ${u.quota.toLocaleString('vi-VN')} ký tự</td>
             <td><span class="badge-role">${u.role}</span></td>
             <td>
+                <button type="button" class="btn-action-edit" onclick="copyUserAccountInfo('${username}', '${u.password}')" style="background: rgba(0, 229, 255, 0.15); border: 1px solid rgba(0, 229, 255, 0.4); color: #00E5FF; margin-right: 4px;" title="Copy Tài khoản & Mật khẩu vào Clipboard"><i class="fa-solid fa-copy"></i> Copy TK/MK</button>
                 ${isAdmin ? `<button class="btn-action-edit" onclick="editUserQuota('${username}')"><i class="fa-solid fa-pen"></i> Sửa Ký Tự</button>` : ''}
                 ${isAdmin && !username.toLowerCase().includes('admin') ? `<button class="btn-action-del" onclick="deleteUser('${username}')"><i class="fa-solid fa-trash"></i> Xóa</button>` : ''}
             </td>
@@ -1791,7 +1951,9 @@ function trackGpuBillingUsage(gpuUrl, costUsd) {
     try {
         const m = gpuUrl.match(/https:\/\/([^.]+)/);
         if (m) {
-            rawKey = m[1].replace("--vieneu-tts-serverless-vieneumodel-generate", "").replace("--omni-voice-serverless-omnimodel-generate", "");
+            rawKey = m[1].replace("--omnivoice-tts-serverless-omnivoicemodel-generate", "")
+                        .replace("--vieneu-tts-serverless-vieneumodel-generate", "")
+                        .replace("--omni-voice-serverless-omnimodel-generate", "");
         }
     } catch (e) {}
     if (!rawKey) return;
@@ -1818,13 +1980,42 @@ async function scanModalGpuStatus() {
     const spinIcon = document.getElementById("spin-dash-icon");
     if (spinIcon) spinIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-    // Thử đồng bộ danh sách GPU online từ Supabase server_config.json
+    // 1. Thử quét chi phí thực tế 100% qua Local Modal Billing API (check_modal_dashboard.py)
     try {
-        const configResp = await fetch("https://jdhjimqktyiwffueaksh.supabase.co/storage/v1/object/public/hth_voice/server_config.json");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const localBillResp = await fetch("http://127.0.0.1:7890/api/status", { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (localBillResp.ok) {
+            const billData = await localBillResp.json();
+            if (billData && billData.accounts && Array.isArray(billData.accounts)) {
+                const tracker = getGpuBillingTracker();
+                billData.accounts.forEach(acc => {
+                    if (acc.name) {
+                        const k = acc.name.strip ? acc.name.strip() : acc.name;
+                        const usedVal = parseFloat((acc.used_usd || "$0.00").replace("$", "")) || 0;
+                        tracker[k] = { used: usedVal, limit: 30.00 };
+                    }
+                });
+                localStorage.setItem("HTH_GPU_BILLING_TRACKER", JSON.stringify(tracker));
+            }
+        }
+    } catch (e) {
+        // Nếu local server không bật thì dùng dữ liệu tracker hiện tại
+    }
+
+    // 2. Thử đồng bộ danh sách GPU online từ Supabase server_config.json
+    try {
+        const configResp = await fetch("https://jdhjimqktyiwffueaksh.supabase.co/storage/v1/object/public/hth_voice/server_config.json?t=" + Date.now(), {
+            headers: {
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": "Bearer " + SUPABASE_ANON_KEY
+            }
+        });
         if (configResp.ok) {
             const configData = await configResp.json();
             if (configData.gpu_urls && Array.isArray(configData.gpu_urls) && configData.gpu_urls.length > 0) {
-                modalGpuUrls = configData.gpu_urls;
+                modalGpuUrls = configData.gpu_urls.map(u => u.replace("--vieneu-tts-serverless-vieneumodel-generate", "--omnivoice-tts-serverless-omnivoicemodel-generate"));
             }
         }
     } catch (e) {
@@ -1836,9 +2027,9 @@ async function scanModalGpuStatus() {
     // Nếu chưa có modalGpuUrls hoặc bị rỗng, tự nạp danh sách máy chủ mặc định từ modal_tokens.txt
     if (!modalGpuUrls || modalGpuUrls.length === 0) {
         modalGpuUrls = [
-            "https://hhhh01234501--vieneu-tts-serverless-vieneumodel-generate.modal.run",
-            "https://hai319959--vieneu-tts-serverless-vieneumodel-generate.modal.run",
-            "https://danghai30052005--vieneu-tts-serverless-vieneumodel-generate.modal.run"
+            "https://hhhh01234501--omnivoice-tts-serverless-omnivoicemodel-generate.modal.run",
+            "https://hai319959--omnivoice-tts-serverless-omnivoicemodel-generate.modal.run",
+            "https://danghai30052005--omnivoice-tts-serverless-omnivoicemodel-generate.modal.run"
         ];
     }
 
@@ -1858,7 +2049,7 @@ async function scanModalGpuStatus() {
             try {
                 const m = url.match(/https:\/\/([^.]+)/);
                 if (m) {
-                    rawKey = m[1].replace("--vieneu-tts-serverless-vieneumodel-generate", "").replace("--omni-voice-serverless-omnimodel-generate", "");
+                    rawKey = m[1].replace("--omnivoice-tts-serverless-omnivoicemodel-generate", "").replace("--vieneu-tts-serverless-vieneumodel-generate", "").replace("--omni-voice-serverless-omnimodel-generate", "");
                     accName = rawKey;
                 }
             } catch (e) {}
@@ -1929,11 +2120,19 @@ window.openStudio = openStudio;
 window.showStudioView = showStudioView;
 window.switchStudioTab = switchStudioTab;
 window.openAdminModal = openAdminModal;
+window.copyUserAccountInfo = copyUserAccountInfo;
 window.scanModalGpuStatus = scanModalGpuStatus;
 window.resetGpuBillingTracker = resetGpuBillingTracker;
 window.generateAudio = generateAudio;
 window.playVoiceSample = playVoiceSample;
 window.onVoiceSelectionChange = onVoiceSelectionChange;
+
+// TỰ ĐỘNG CHẠY QUÉT DỮ LIỆU $ REALTIME 30 GIÂY 1 LẦN DÀNH CHO BẢNG THEO DÕI
+setInterval(() => {
+    try {
+        scanModalGpuStatus();
+    } catch (e) {}
+}, 30000);
 window.openVoiceBrowserModal = openVoiceBrowserModal;
 window.closeVoiceBrowserModal = closeVoiceBrowserModal;
 window.renderVoiceBrowserList = renderVoiceBrowserList;

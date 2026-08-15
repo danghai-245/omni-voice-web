@@ -222,20 +222,14 @@
                 <div class="card-box audio-params-card">
                     <h4><i class="fa-solid fa-sliders"></i> Tinh chỉnh phát âm & Đặc tính giọng</h4>
                     
-                    <div class="form-group-inline">
-                        <label for="select-ai-engine" style="color: #00E676; font-weight: 700;">🚀 AI Engine:</label>
-                        <select id="select-ai-engine" onchange="onAiEngineChange()" style="border-color: #00E676; font-weight: 700;">
-                            <option value="omni" selected>VIP 1 - Đa ngôn ngữ</option>
-                            <option value="vieneu">VIP 2 - Chuyên tiếng việt</option>
-                        </select>
-                    </div>
+
 
                     <div class="grid-2-col omni-only-param">
                         <div class="form-group-inline">
                             <label for="select-target-lang">Ngôn ngữ đọc (Language):</label>
                             <select id="select-target-lang">
-                                <option value="auto">Auto (Tự phát hiện)</option>
-                                <option value="vi" selected>Tiếng Việt (Vietnamese)</option>
+                                <option value="auto" selected>Auto (Tự phát hiện)</option>
+                                <option value="vi">Tiếng Việt (Vietnamese)</option>
                                 <option value="en">Tiếng Anh (English)</option>
                                 <option value="zh">Tiếng Trung (Chinese)</option>
                                 <option value="ja">Tiếng Nhật (Japanese)</option>
@@ -284,12 +278,12 @@
                         </label>
                     </div>
 
-                    <div class="slider-group omni-only-param">
+                    <div class="slider-group omni-only-param" style="display: none !important;">
                         <div class="slider-header">
                             <span>Khử nhiễu (Steps):</span>
-                            <span class="slider-val" id="val-steps">32</span>
+                            <span class="slider-val" id="val-steps">64</span>
                         </div>
-                        <input type="range" id="range-steps" min="10" max="50" value="32" oninput="document.getElementById('val-steps').innerText=this.value">
+                        <input type="range" id="range-steps" min="10" max="64" value="64" oninput="document.getElementById('val-steps').innerText=this.value">
                     </div>
 
                     <div class="slider-group">
@@ -576,6 +570,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20260815_v2"></script>
 </body>
 </html>
