@@ -211,8 +211,8 @@
                         </select>
 
                         <div style="display: flex; width: 100%;">
-                            <button type="button" onclick="openVoiceBrowserModal()" style="width: 100%; padding: 12px 16px; background: linear-gradient(135deg, #7C4DFF, #00E5FF); border: none; color: #FFF; font-weight: 700; font-size: 0.9rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3); transition: transform 0.15s;">
-                                <i class="fa-solid fa-list-ul"></i> Mở Bảng 700+ Giọng VIP & Nghe Trực Tiếp
+                            <button type="button" id="btn-open-voice-browser" onclick="openVoiceBrowserModal()" style="width: 100%; padding: 12px 16px; background: linear-gradient(135deg, #7C4DFF, #00E5FF); border: none; color: #FFF; font-weight: 700; font-size: 0.9rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3); transition: transform 0.15s;">
+                                <i class="fa-solid fa-list-ul"></i> Mở Bảng Danh Sách Giọng VIP
                             </button>
                         </div>
                     </div>
@@ -542,8 +542,8 @@
     <div id="voice-browser-modal" class="modal-overlay hidden" style="display: none;">
         <div class="modal-card" style="max-width: 880px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; border-color: rgba(0, 229, 255, 0.4);">
             <button class="modal-close" onclick="closeVoiceBrowserModal()">&times;</button>
-            <h3 style="color: #00E5FF; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-headphones"></i> Bảng Duyệt VIP 700+ Giọng Đọc (Có Nút ▶ Play Nghe Trực Tiếp)
+            <h3 id="modal-voice-title" style="color: #00E5FF; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-headphones"></i> Bảng Duyệt VIP Danh Sách Giọng Đọc
             </h3>
             
             <!-- BỘ LỌC TÌM KIẾM ĐẦY ĐỦ TRONG MODAL -->

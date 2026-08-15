@@ -979,8 +979,25 @@ async function loadGitHubVoices() {
             });
         }
 
-        const countStr = `${allVoiceMetadata.length}+`;
-        document.getElementById("stat-voice-count").innerText = countStr;
+        const totalCount = allVoiceMetadata.length;
+        const countStr = `${totalCount}+`;
+
+        const statVoiceCountEl = document.getElementById("stat-voice-count");
+        if (statVoiceCountEl) statVoiceCountEl.innerText = countStr;
+
+        const tagVoiceEl = document.getElementById("selected-voice-tag");
+        if (tagVoiceEl) tagVoiceEl.innerText = `${totalCount} Giọng VIP`;
+
+        const btnOpenBrowserEl = document.getElementById("btn-open-voice-browser");
+        if (btnOpenBrowserEl) {
+            btnOpenBrowserEl.innerHTML = `<i class="fa-solid fa-list-ul"></i> Mở Bảng Danh Sách Giọng VIP (${totalCount} Giọng)`;
+        }
+
+        const modalTitleEl = document.getElementById("modal-voice-title");
+        if (modalTitleEl) {
+            modalTitleEl.innerHTML = `<i class="fa-solid fa-headphones"></i> Bảng Duyệt VIP Danh Sách Giọng Đọc (${totalCount} Giọng)`;
+        }
+
         populateFilters();
         applyFilters();
 
