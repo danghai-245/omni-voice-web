@@ -628,7 +628,21 @@ async function processSingleChunk(idx) {
             cleanText += ".";
         }
 
-        addAppLog(`Đang gửi câu lệnh chuẩn hóa đến GPU cho Đoạn ${item.id}: "${cleanText.substring(0, 40)}..."`);
+        // Lấy thông tin giọng mẫu được chọn chính xác từ allVoiceMetadata
+        const selectedVoiceName = document.getElementById("select-voice")?.value || "";
+        const voiceMeta = allVoiceMetadata.find(v => v.name === selectedVoiceName) || (allVoiceMetadata.length > 0 ? allVoiceMetadata[0] : null);
+        
+        let refAudioUrl = "";
+        let voiceId = "";
+        let filename = "";
+        
+        if (voiceMeta) {
+            refAudioUrl = voiceMeta.downloadUrl || `https://raw.githubusercontent.com/${GITHUB_VOICE_REPO}/main/${encodeURIComponent(voiceMeta.filename)}`;
+            voiceId = voiceMeta.voiceId || "";
+            filename = voiceMeta.filename || "";
+        }
+
+        addAppLog(`Đang gửi câu lệnh đến GPU cho Đoạn ${item.id} (Giọng mẫu: "${selectedVoiceName || 'Mặc định'}"): "${cleanText.substring(0, 35)}..."`);
 
         const startTime = Date.now();
         const response = await fetch(gpuUrl, {
@@ -640,7 +654,16 @@ async function processSingleChunk(idx) {
             body: JSON.stringify({
                 text: cleanText || item.text,
                 speed: speedVal,
-                ref_text: ""
+                ref_text: "",
+                // ĐẦY ĐỦ CÁC THAM SỐ NHẬN DIỆN GIỌNG MẪU ĐƯỢC CHỌN CHO MÁY CHỦ GPU
+                voice_name: selectedVoiceName,
+                voice: selectedVoiceName,
+                voice_id: voiceId,
+                ref_audio: refAudioUrl,
+                ref_audio_url: refAudioUrl,
+                prompt_audio: refAudioUrl,
+                audio_prompt: refAudioUrl,
+                filename: filename
             })
         });
 
