@@ -630,6 +630,7 @@ async function processSingleChunk(idx) {
 
         addAppLog(`Đang gửi câu lệnh chuẩn hóa đến GPU cho Đoạn ${item.id}: "${cleanText.substring(0, 40)}..."`);
 
+        const startTime = Date.now();
         const response = await fetch(gpuUrl, {
             method: "POST",
             mode: "cors",
@@ -649,6 +650,10 @@ async function processSingleChunk(idx) {
                 item.audioUrl = URL.createObjectURL(blob);
                 item.status = "done";
                 
+                const renderDurationSec = Math.max(1.0, (Date.now() - startTime) / 1000);
+                const costUsd = Math.max(0.0015, (renderDurationSec * 0.00035) + ((cleanText || item.text).length * 0.000005));
+                trackGpuBillingUsage(gpuUrl, costUsd);
+
                 currentUser.used += item.text.length;
                 if (usersDatabase.USERS[currentUser.username]) {
                     usersDatabase.USERS[currentUser.username].used = currentUser.used;
@@ -660,7 +665,7 @@ async function processSingleChunk(idx) {
 
                 document.getElementById("user-quota-display").innerText = `${currentUser.used.toLocaleString('vi-VN')} / ${currentUser.quota.toLocaleString('vi-VN')} ký tự`;
                 renderChunksTable();
-                addAppLog(`Đoạn ${item.id} tạo voice AI bằng máy chủ GPU THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB)`);
+                addAppLog(`Đoạn ${item.id} tạo voice AI bằng máy chủ GPU THÀNH CÔNG 100%! (${(blob.size / 1024).toFixed(1)} KB, tiêu tốn $${costUsd.toFixed(4)})`);
                 return;
             }
         }
@@ -1710,11 +1715,47 @@ function startDashboardAutoTimer() {
 }
 
 // BẢNG DỮ LIỆU CHI PHÍ CHI TIẾT TỪ MODAL API BILLING SUMMARY (KẾT XUẤT TỪ MODAL_TOKENS.TXT)
-const MODAL_ACCOUNT_BILLING = {
-    "hhhh01234501": { used: 0.81, limit: 30.00 },
-    "hai319959": { used: 0.24, limit: 30.00 },
-    "danghai30052005": { used: 0.07, limit: 30.00 }
-};
+function getGpuBillingTracker() {
+    try {
+        const saved = localStorage.getItem("HTH_GPU_BILLING_TRACKER");
+        if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    
+    return {
+        "hhhh01234501": { used: 0.81, limit: 30.00 },
+        "hai319959": { used: 0.24, limit: 30.00 },
+        "danghai30052005": { used: 0.07, limit: 30.00 }
+    };
+}
+
+function trackGpuBillingUsage(gpuUrl, costUsd) {
+    if (!gpuUrl) return;
+    let rawKey = "";
+    try {
+        const m = gpuUrl.match(/https:\/\/([^.]+)/);
+        if (m) {
+            rawKey = m[1].replace("--vieneu-tts-serverless-vieneumodel-generate", "").replace("--omni-voice-serverless-omnimodel-generate", "");
+        }
+    } catch (e) {}
+    if (!rawKey) return;
+
+    const tracker = getGpuBillingTracker();
+    if (!tracker[rawKey]) {
+        tracker[rawKey] = { used: 0.00, limit: 30.00 };
+    }
+
+    tracker[rawKey].used += costUsd;
+    localStorage.setItem("HTH_GPU_BILLING_TRACKER", JSON.stringify(tracker));
+
+    // Kích hoạt cập nhật số dư giao diện Realtime
+    scanModalGpuStatus();
+}
+
+function resetGpuBillingTracker() {
+    localStorage.removeItem("HTH_GPU_BILLING_TRACKER");
+    showToast("Đặt Lại Chi Phí", "Đã xóa lịch sử tiêu tốn $ GPU và đưa về mức ban đầu!", "success");
+    scanModalGpuStatus();
+}
 
 async function scanModalGpuStatus() {
     const spinIcon = document.getElementById("spin-dash-icon");
@@ -1734,8 +1775,10 @@ async function scanModalGpuStatus() {
     const totalEl = document.getElementById("stat-dash-total");
     if (totalEl) totalEl.innerText = modalGpuUrls.length;
 
+    const tracker = getGpuBillingTracker();
+
     let totalUsedUsd = 0;
-    let totalLimitUsd = modalGpuUrls.length * 30.00;
+    let totalLimitUsd = 0;
 
     // Render giao diện card chi tiết số $ thực tế đã sử dụng
     if (grid) {
@@ -1750,9 +1793,12 @@ async function scanModalGpuStatus() {
                 }
             } catch (e) {}
 
-            const billing = MODAL_ACCOUNT_BILLING[rawKey] || { used: 0.00, limit: 30.00 };
+            const billing = tracker[rawKey] || { used: 0.00, limit: 30.00 };
+            const limitVal = billing.limit || 30.00;
             totalUsedUsd += billing.used;
-            const remUsd = Math.max(0, billing.limit - billing.used);
+            totalLimitUsd += limitVal;
+
+            const remUsd = Math.max(0, limitVal - billing.used);
 
             return `
                 <div id="gpu-card-${idx}" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 16px; padding: 20px; transition: all 0.3s ease; position: relative;">
@@ -1765,8 +1811,9 @@ async function scanModalGpuStatus() {
                         </div>
                     </div>
 
-                    <div style="background: rgba(124, 77, 255, 0.15); border: 1px solid rgba(124, 77, 255, 0.4); color: #B388FF; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; display: inline-block; margin-bottom: 12px;">
-                        💰 Dùng: $${billing.used.toFixed(2)} / Còn: $${remUsd.toFixed(2)} (Hạn mức $${billing.limit.toFixed(2)})
+                    <div style="background: rgba(124, 77, 255, 0.15); border: 1px solid rgba(124, 77, 255, 0.4); color: #B388FF; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span>💰 Dùng: <strong style="color: #FFD700;">$${billing.used.toFixed(4)}</strong> / Còn: <strong style="color: #00E5FF;">$${remUsd.toFixed(4)}</strong></span>
+                        <span style="font-size: 0.75rem; color: #94A3B8;">(Hạn $${limitVal.toFixed(2)})</span>
                     </div>
 
                     <div style="font-size: 13px; color: #94A3B8; margin-bottom: 6px;">
@@ -1789,7 +1836,7 @@ async function scanModalGpuStatus() {
 
     const creditStatEl = document.getElementById("stat-dash-credit");
     if (creditStatEl) {
-        creditStatEl.innerText = `$${totalUsedUsd.toFixed(2)} / $${totalLimitUsd.toFixed(2)}`;
+        creditStatEl.innerText = `$${totalUsedUsd.toFixed(4)} / $${totalLimitUsd.toFixed(2)}`;
     }
 
     const liveEl = document.getElementById("stat-dash-live");
@@ -1813,6 +1860,7 @@ window.showStudioView = showStudioView;
 window.switchStudioTab = switchStudioTab;
 window.openAdminModal = openAdminModal;
 window.scanModalGpuStatus = scanModalGpuStatus;
+window.resetGpuBillingTracker = resetGpuBillingTracker;
 window.generateAudio = generateAudio;
 window.playVoiceSample = playVoiceSample;
 window.onVoiceSelectionChange = onVoiceSelectionChange;
