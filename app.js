@@ -520,7 +520,33 @@ async function generateAllChunks() {
     showToast("Siêu Tạo Hoàn Thành", `Đã tạo xong toàn bộ ${totalChunks} đoạn voice AI thành công!`, "success");
 }
 
-async function generateSelectedChunk() {
+const voiceBase64Cache = {};
+
+async function getVoiceBase64(url) {
+    if (!url) return "";
+    if (voiceBase64Cache[url]) return voiceBase64Cache[url];
+    try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+            const blob = await resp.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64data = reader.result;
+                    voiceBase64Cache[url] = base64data;
+                    resolve(base64data);
+                };
+                reader.onerror = () => resolve("");
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch (e) {
+        console.warn("Không thể tải voice mẫu sang Base64:", e);
+    }
+    return "";
+}
+
+async function generateSingleAudioChunk(idx) {
     if (selectedChunkIndex === -1) { alert("Vui lòng click chọn 1 đoạn trong bảng trước!"); return; }
     await processSingleChunk(selectedChunkIndex);
 }
@@ -642,7 +668,13 @@ async function processSingleChunk(idx) {
             filename = voiceMeta.filename || "";
         }
 
-        addAppLog(`Đang gửi câu lệnh đến GPU cho Đoạn ${item.id} (Giọng mẫu: "${selectedVoiceName || 'Mặc định'}"): "${cleanText.substring(0, 35)}..."`);
+        let refAudioBase64 = "";
+        if (refAudioUrl) {
+            addAppLog(`Đang nạp tệp âm thanh mẫu "${selectedVoiceName}" từ GitHub...`);
+            refAudioBase64 = await getVoiceBase64(refAudioUrl);
+        }
+
+        addAppLog(`Đang gửi câu lệnh đến GPU cho Đoạn ${item.id} (Giọng mẫu: "${selectedVoiceName || 'Mặc định'}", ${refAudioBase64 ? 'đã đính kèm tệp âm thanh Base64 100%' : 'dùng URL link'}): "${cleanText.substring(0, 30)}..."`);
 
         const startTime = Date.now();
         const response = await fetch(gpuUrl, {
@@ -655,14 +687,16 @@ async function processSingleChunk(idx) {
                 text: cleanText || item.text,
                 speed: speedVal,
                 ref_text: "",
-                // ĐẦY ĐỦ CÁC THAM SỐ NHẬN DIỆN GIỌNG MẪU ĐƯỢC CHỌN CHO MÁY CHỦ GPU
+                // ĐẦY ĐỦ CÁC THAM SỐ VÀ FILE ÂM THANH MẪU BASE64 CHO MÁY CHỦ GPU
                 voice_name: selectedVoiceName,
                 voice: selectedVoiceName,
                 voice_id: voiceId,
-                ref_audio: refAudioUrl,
+                ref_audio: refAudioBase64 || refAudioUrl,
                 ref_audio_url: refAudioUrl,
-                prompt_audio: refAudioUrl,
-                audio_prompt: refAudioUrl,
+                ref_audio_base64: refAudioBase64,
+                prompt_speech: refAudioBase64,
+                prompt_audio: refAudioBase64 || refAudioUrl,
+                audio_prompt: refAudioBase64 || refAudioUrl,
                 filename: filename
             })
         });
@@ -1783,6 +1817,19 @@ function resetGpuBillingTracker() {
 async function scanModalGpuStatus() {
     const spinIcon = document.getElementById("spin-dash-icon");
     if (spinIcon) spinIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    // Thử đồng bộ danh sách GPU online từ Supabase server_config.json
+    try {
+        const configResp = await fetch("https://jdhjimqktyiwffueaksh.supabase.co/storage/v1/object/public/hth_voice/server_config.json");
+        if (configResp.ok) {
+            const configData = await configResp.json();
+            if (configData.gpu_urls && Array.isArray(configData.gpu_urls) && configData.gpu_urls.length > 0) {
+                modalGpuUrls = configData.gpu_urls;
+            }
+        }
+    } catch (e) {
+        console.warn("Không thể tải server_config online:", e);
+    }
 
     const grid = document.getElementById("modal-gpu-cards-grid");
 
