@@ -762,35 +762,166 @@ function stopGenerating() {
     addAppLog("Đã gửi lệnh Dừng Tạo.");
 }
 
-function mergeAllAudioChunks() {
+// BỘ MÃ HÓA VÀ NỐI AUDIO BUFFERS CHUẨN TRÌNH DUYỆT (WEB AUDIO API 16-BIT PCM WAV)
+function audioBufferToWav(buffer) {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const bitDepth = 16;
+    
+    let samples;
+    if (numChannels === 2) {
+        const left = buffer.getChannelData(0);
+        const right = buffer.getChannelData(1);
+        samples = interleaveChannels(left, right);
+    } else {
+        samples = buffer.getChannelData(0);
+    }
+
+    return createWavBlobFromPCM(samples, numChannels, sampleRate, bitDepth);
+}
+
+function interleaveChannels(left, right) {
+    const length = left.length + right.length;
+    const result = new Float32Array(length);
+    let inputIndex = 0;
+    for (let index = 0; index < length;) {
+        result[index++] = left[inputIndex];
+        result[index++] = right[inputIndex];
+        inputIndex++;
+    }
+    return result;
+}
+
+function createWavBlobFromPCM(samples, numChannels, sampleRate, bitDepth) {
+    const bytesPerSample = bitDepth / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+    const view = new DataView(buffer);
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * bytesPerSample, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * bytesPerSample, true);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+        let s = Math.max(-1, Math.min(1, samples[i]));
+        s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        view.setInt16(offset, s, true);
+        offset += 2;
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+}
+
+async function mergeAudioUrls(audioUrls, silenceSec = 0.2) {
+    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtxClass();
+    const audioBuffers = [];
+
+    for (const url of audioUrls) {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        audioBuffers.push(decodedBuffer);
+    }
+
+    if (audioBuffers.length === 0) return null;
+
+    const sampleRate = audioBuffers[0].sampleRate;
+    const numChannels = audioBuffers[0].numberOfChannels;
+    const silenceLength = Math.floor(sampleRate * silenceSec);
+
+    let totalLength = 0;
+    audioBuffers.forEach((buf, i) => {
+        totalLength += buf.length;
+        if (i < audioBuffers.length - 1) {
+            totalLength += silenceLength;
+        }
+    });
+
+    const mergedBuffer = audioCtx.createBuffer(numChannels, totalLength, sampleRate);
+
+    for (let channel = 0; channel < numChannels; channel++) {
+        const output = mergedBuffer.getChannelData(channel);
+        let offset = 0;
+
+        audioBuffers.forEach((buf, i) => {
+            const input = buf.getChannelData(Math.min(channel, buf.numberOfChannels - 1));
+            output.set(input, offset);
+            offset += buf.length;
+
+            if (i < audioBuffers.length - 1) {
+                offset += silenceLength;
+            }
+        });
+    }
+
+    if (audioCtx.state !== 'closed') {
+        await audioCtx.close();
+    }
+
+    return audioBufferToWav(mergedBuffer);
+}
+
+async function mergeAllAudioChunks() {
     const doneChunks = currentChunksList.filter(c => c.status === "done" && c.audioUrl);
     if (doneChunks.length === 0) {
         alert("Chưa có đoạn nào hoàn thành tạo âm thanh để gộp!");
         return;
     }
 
-    const silencePause = parseFloat(document.getElementById("input-silence-pause").value) || 0.2;
-    const autoClean = document.getElementById("check-auto-clean").checked;
+    const silencePause = parseFloat(document.getElementById("input-silence-pause")?.value) || 0.2;
+    const autoClean = document.getElementById("check-auto-clean")?.checked;
 
-    addAppLog(`Bắt đầu GỘP ${doneChunks.length} đoạn âm thanh...`);
+    addAppLog(`Bắt đầu GỘP THẬT ${doneChunks.length} đoạn âm thanh giọng đọc...`);
+    showToast("Đang Ghép Audio", "Đang xử lý ghép các đoạn âm thanh hoàn chỉnh...", "info");
 
-    const mergedBlob = createWavAudioBlob(Math.max(4.0, doneChunks.length * 3.0), 480);
-    const mergedUrl = URL.createObjectURL(mergedBlob);
+    try {
+        const audioUrls = doneChunks.map(c => c.audioUrl);
+        const mergedBlob = await mergeAudioUrls(audioUrls, silencePause);
 
-    const resultCard = document.getElementById("audio-result-card");
-    resultCard.classList.remove("hidden");
-    const player = document.getElementById("audio-player");
-    const downloadLink = document.getElementById("download-link");
+        if (!mergedBlob) {
+            showToast("Lỗi Ghép Audio", "Không thể tạo file âm thanh gộp!", "error");
+            return;
+        }
 
-    player.src = mergedUrl;
-    downloadLink.href = mergedUrl;
-    downloadLink.download = "HTH_Supper_Voice_HoanChinh.wav";
-    player.play().catch(err => console.log("Merged player status:", err));
+        const mergedUrl = URL.createObjectURL(mergedBlob);
 
-    if (autoClean) {
-        addAppLog("Đã tự động dọn dẹp các tệp tạm.");
+        const resultCard = document.getElementById("audio-result-card");
+        if (resultCard) resultCard.classList.remove("hidden");
+        
+        const player = document.getElementById("audio-player");
+        const downloadLink = document.getElementById("download-link");
+
+        if (player) {
+            player.src = mergedUrl;
+            player.play().catch(err => console.log("Merged player status:", err));
+        }
+        if (downloadLink) {
+            downloadLink.href = mergedUrl;
+            downloadLink.download = "HTH_Supper_Voice_HoanChinh.wav";
+        }
+
+        if (autoClean) {
+            addAppLog("Đã tự động dọn dẹp các tệp tạm.");
+        }
+        addAppLog("GỘP CÁC ĐOẠN VÀ XUẤT FILE HOÀN CHỈNH THÀNH CÔNG 100%!");
+        showToast("Ghép Hoàn Tất", "Đã ghép tất cả các đoạn thành 1 file WAV hoàn chỉnh thành công!", "success");
+    } catch (err) {
+        console.error("Lỗi gộp audio:", err);
+        addAppLog("Lỗi gộp âm thanh: " + err.message);
+        showToast("Lỗi Gộp File", "Không thể ghép file âm thanh: " + err.message, "error");
     }
-    addAppLog("GỘP CÁC ĐOẠN VÀ XUẤT FILE HOÀN CHỈNH THÀNH CÔNG 100%!");
 }
 
 function getRandomGpuUrl() {
@@ -1540,3 +1671,4 @@ window.closeVoiceBrowserModal = closeVoiceBrowserModal;
 window.renderVoiceBrowserList = renderVoiceBrowserList;
 window.playDirectVoiceSample = playDirectVoiceSample;
 window.selectVoiceFromBrowserModal = selectVoiceFromBrowserModal;
+window.mergeAllAudioChunks = mergeAllAudioChunks;
